@@ -1,0 +1,24 @@
+Base cost
+
+P1      400 ISK
+P2      7,200 ISK
+P3      60,000 ISK
+P4      1,200,000 ISK
+
+Export fee = Base cost * tax rate (*1.5 if launched via CC)
+Import fee = Base cost * tax rate * 0.5
+
+http://wiki.eveuniversity.org/Planetary_Interaction
+
+-- Accounting 16622
+-- Broker Relations 3446
+-- Margin Trading 16597
+-- Trade 3443
+-- Retail 3444
+-- Wholesale 16596
+-- Tycoon 18580
+-- Customs Code Expertise 33467
+
+
+
+http://localhost:5000/docs/

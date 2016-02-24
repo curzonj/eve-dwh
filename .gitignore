@@ -1,0 +1,7 @@
+postgres-latest.dmp
+node_modules
+.env
+/public/crestexplorer.js
+/my.db
+/dump.rdb
+/dumps

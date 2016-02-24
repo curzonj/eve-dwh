@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var repl = require("repl")
+var r = repl.start({})
+
+var lib = r.context.lib = require('../src/library')
+
+r.on('exit', function () {
+    console.log("closing")
+    process.exit()
+})
+
+r.context.pdone = function(result) { console.log("Done", JSON.stringify(result, null, 2) )}

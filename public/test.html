@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+
+    <!--
+        https://image.eveonline.com/Type/2395_64.png 
+        https://image.eveonline.com/Character/92477927_64.jpg
+    -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
+    <script>
+        Notification.requestPermission(function() {})
+
+        var socket = io()
+        $('form').submit(function(){
+            socket.emit('chat message', $('#m').val())
+            $('#m').val('')
+            return false
+        })
+        socket.on('chat message', function(msg){
+            $('#messages').append($('<li>').text(msg))
+        })
+        
+        function announceOrderOutBid(msg) {
+            console.log(msg)
+            var key = msg.type_id+'-'+msg.station_id
+            var existing_elem = $('#'+key)
+
+            if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
+                var system_name = msg.station_name.split(' ')[0]
+                var term = msg.buy ? 'Buy' : 'Sell'
+                var text = msg.buy ? 'Max Offer price: <b>'+msg.max_buy_offer_price : 'Min Sell price : <b>'+msg.min_sell_offer_price
+
+                var dom = $('<li id="'+key+'">')
+                dom.append('<img style="float:left; margin: 0px 15px 5px 0px;" align="top" src="https://image.eveonline.com/Type/'+ msg.type_id +'_64.png">')
+                //dom.append('<img src="https://image.eveonline.com/Character/'+ msg.character_id +'_64.png">')
+                dom.append('<div style="margin: 20px 0px 0px;"><span>'+term+' order by '+msg.character_name+' for <b>'+ msg.type_name+'</b> outbid in <b>'+system_name+'</b>.<br/></span><span>'+text+'</b> Current Price: <b>'+msg.price+'</b> Minimum Marign: <b>'+msg.minimum_margin+'</b> Current Margin: <b>'+msg.current_margin+'</b></span></div>')
+                dom.append('<br style="clear: both;" />')
+
+                if ( existing_elem.length ) {
+                        existing_elem.replaceWith(dom)
+                        return false
+                } else {
+                        $('#messages').append(dom)
+                        return true
+                }
+            } else {
+                    existing_elem.remove()
+            }
+        }
+
+        socket.on('order_announcement', announceOrderOutBid)
+
+        socket.on('order_status', function(msg){
+            if (announceOrderOutBid(msg)) {
+                var system_name = msg.station_name.split(' ')[0]
+                Notification.requestPermission(function() {
+                    var term = msg.buy ? 'Buy' : 'Sell'
+                    var notification = new Notification(term+' order for '+msg.type_name+" outbid in "+system_name, {
+                        body: msg.character_name + "\n" + term + ' '+ (msg.buy ? msg.max_buy_offer_price : msg.min_sell_offer_price) + ' / ' + msg.price + ' / ' +  msg.minimum_margin + ' / ' + msg.current_margin,
+                        icon: 'https://image.eveonline.com/Type/'+ msg.type_id +'_64.png'
+                    })
+                })
+            }
+        })
+    </script>
+  </body>
+</html>

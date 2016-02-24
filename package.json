@@ -1,0 +1,70 @@
+{
+  "name": "eve-crest-dwh",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=5.0.0"
+  },
+  "scripts": {
+
+  },
+  "browserify": {
+    "transform": [
+      "envify"
+    ]
+  },
+  "devDependencies": {
+    "require-dir": "^0.1.0",
+    "gulp-batch": "latest",
+    "gulp-jscs": "latest",
+    "gulp-watch": "latest",
+    "gulp-jsbeautifier": "latest",
+    "gulp-jshint": "latest",
+    "jshint-stylish": "latest",
+    "jshint": "latest",
+    "gulp": "^3.8.7"
+  },
+  "dependencies": {
+    "passport.socketio": "latest",
+    "helmet": "latest",
+    "express-enforces-ssl": "latest",
+    "measured": "latest",
+    "express-session": "latest",
+    "connect-session-knex": "latest",
+    "cookie-parser": "latest",
+    "passport": "latest",
+    "passport-eveonline": "latest",
+    "socket.io": "latest",
+    "debug": "latest",
+    "q": "latest",
+    "swagger-tools": "apigee-127/swagger-tools",
+    "express": "latest",
+    "logfmt": "latest",
+    "node-uuid": "latest",
+    "rollbar": "latest",
+    "pg": "latest",
+    "moment": "latest",
+    "envify": "latest",
+    "browserify": "latest",
+    "node-static": "latest",
+    "async-q": "latest",
+    "pg-promise": "latest",
+    "postgrator": "latest",
+    "lodash": "latest",
+    "promise-throttle": "latest",
+    "request-promise": "latest",
+    "bluebird": "latest",
+    "knex": "latest",
+    "neow": "latest"
+  },
+  "jshintConfig": {
+    "esversion": 6,
+    "node": true,
+    "strict": true,
+    "newcap": false,
+    "asi": true
+  },
+  "jscsConfig": {
+    "preset": "node-style-guide"
+  }
+}

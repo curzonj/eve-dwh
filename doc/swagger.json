@@ -1,0 +1,95 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "EVE Online Data Warehouse",
+    "version": "1.0"
+  },
+  "produces": ["application/json", "text/plain"],
+  "host": "eve-crest-dwh.herokuapp.com",
+  "basePath": "/",
+  "definitions": {
+    "responseError": {
+      "type": "object",
+      "properties": {
+        "errorDetails": {
+          "description": "this really should be rationalized but atm, it could be a string OR an object. Swagger doesn't support this as a schema so it's left undefined"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+      "swagger-ui-key": {
+        "description": "This just defines what the Swagger-UI does so it has to be supported.",
+        "name": "api_key",
+        "type": "apiKey",
+        "in": "query"
+      }
+  },
+  "security": [
+    {
+      "swagger-ui-key": []
+    }
+  ],
+  "responses": {
+    "Error": {
+      "description": "Any kind of error, not just an internal error",
+      "schema": {
+        "$ref": "#/definitions/responseError"
+      }
+    },
+    "Empty": {
+      "description": "It's a normal empty response, but swagger can't understand that",
+      "schema": {
+        "type": "string",
+        "enum": [ "" ]
+      }
+    },
+    "NotFound": {
+      "description": "Couldn't find something you specified",
+      "schema": {
+        "type": "string"
+      }
+    }
+  },
+  "paths": {
+    "/_/metrics": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "The current metrics",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sql": {
+      "post": {
+        "description": "Execute an SQL query",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": { "$ref": "#/responses/Error" },
+          "200": {
+            "description": "something",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

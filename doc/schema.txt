@@ -1,0 +1,10 @@
+Orders
+    "price","volRemaining","range","orderID","volEntered","minVolume","bid","issueDate","duration","stationID","solarSystemID"
+
+OrderUpdate
+    order_id
+    last_updated_at
+    observed_at
+    volume
+    volume_delta
+    price

@@ -47,10 +47,11 @@
             if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
                 var system_name = msg.station_name.split(' ')[0]
                 var term = msg.buy ? 'buy' : 'sell'
+                var profit = (msg.current_margin - msg.minimum_margin).toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
 
                 var dom = $('<li id="'+key+'">')
                 dom.append('<img style="float:left; margin: 0px 15px 5px 0px;" align="top" src="https://image.eveonline.com/Type/'+ msg.type_id +'_64.png">')
-                dom.append('<div style="margin: 20px 0px 0px;"><span><b>'+system_name+'</b> '+term+' order by '+msg.character_name+' outbid.<br/></span><span><b>'+ msg.type_name+'</b> Current Profit: '+(msg.current_margin - msg.minimum_margin)+'</span></div>')
+                dom.append('<div style="margin: 20px 0px 0px;"><span><b>'+system_name+'</b> '+term+' order by '+msg.character_name+' outbid.<br/></span><span><b>'+ msg.type_name+'</b> Current Profit: '+profit+'</span></div>')
                 dom.append('<br style="clear: both;" />')
 
                 if ( existing_elem.length ) {

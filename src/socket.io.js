@@ -49,7 +49,7 @@ module.exports = function(io) {
             })
         })
 
-        character_order_details('market').then(function(orders) {
+        character_order_details('market').tap(sql.utils.parseNumbers).then(function(orders) {
             _.forEach(orders, (o) => { socket.emit('order_announcement', o) })
         })
     }))

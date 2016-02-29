@@ -23,6 +23,10 @@
 
         Notification.requestPermission(function() {})
 
+        $('#messages').on('click', '.an_order', function() {
+                $(this).remove()
+        })
+
         var socket = io()
         function announceOrderOutBid(msg) {
             console.log(msg)
@@ -35,7 +39,7 @@
                 var profit = msg.profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
                 var klass = msg.profit > 0 ? 'gain' : 'loss'
 
-                var dom = $('<li id="'+key+'">')
+                var dom = $('<li class="an_order" id="'+key+'">')
                 dom.append('<img style="float:left; margin: 0px 15px 5px 0px;" align="top" src="https://image.eveonline.com/Type/'+ msg.type_id +'_64.png">')
                 dom.append('<div style="margin: 20px 0px 0px;"><span><b>'+system_name+'</b> '+term+' order by '+msg.character_name+' outbid.<br/></span><b>'+ msg.type_name+'</b> <span class="'+klass+'">Current Profit: '+profit+'</span></div>')
                 dom.append('<br style="clear: both;" />')

@@ -46,13 +46,11 @@
 
             if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
                 var system_name = msg.station_name.split(' ')[0]
-                var term = msg.buy ? 'Buy' : 'Sell'
-                var text = msg.buy ? 'Max Offer price: <b>'+msg.max_buy_offer_price : 'Min Sell price : <b>'+msg.min_sell_offer_price
+                var term = msg.buy ? 'buy' : 'sell'
 
                 var dom = $('<li id="'+key+'">')
                 dom.append('<img style="float:left; margin: 0px 15px 5px 0px;" align="top" src="https://image.eveonline.com/Type/'+ msg.type_id +'_64.png">')
-                //dom.append('<img src="https://image.eveonline.com/Character/'+ msg.character_id +'_64.png">')
-                dom.append('<div style="margin: 20px 0px 0px;"><span>'+term+' order by '+msg.character_name+' for <b>'+ msg.type_name+'</b> outbid in <b>'+system_name+'</b>.<br/></span><span>'+text+'</b> Current Price: <b>'+msg.price+'</b> Minimum Marign: <b>'+msg.minimum_margin+'</b> Current Margin: <b>'+msg.current_margin+'</b></span></div>')
+                dom.append('<div style="margin: 20px 0px 0px;"><span><b>'+system_name+'</b> '+term+' order by '+msg.character_name+' outbid.<br/></span><span><b>'+ msg.type_name+'</b> Current Profit: '+(msg.current_margin - msg.minimum_margin)+'</span></div>')
                 dom.append('<br style="clear: both;" />')
 
                 if ( existing_elem.length ) {
@@ -75,7 +73,6 @@
                 Notification.requestPermission(function() {
                     var term = msg.buy ? 'Buy' : 'Sell'
                     var notification = new Notification(term+' order for '+msg.type_name+" outbid in "+system_name, {
-                        body: msg.character_name + "\n" + term + ' '+ (msg.buy ? msg.max_buy_offer_price : msg.min_sell_offer_price) + ' / ' + msg.price + ' / ' +  msg.minimum_margin + ' / ' + msg.current_margin,
                         icon: 'https://image.eveonline.com/Type/'+ msg.type_id +'_64.png'
                     })
                 })

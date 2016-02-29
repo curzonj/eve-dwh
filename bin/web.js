@@ -36,6 +36,8 @@ if (useSSL) {
     app.use(helmet.hsts({ maxAge: ninetyDaysInMilliseconds }))
 }
 
+app.use(express.static('public'))
+
 app.use(function(req, res, next) {
     var timer = logfmt.time()
 
@@ -112,8 +114,6 @@ app.use(function(req, resp, next) {
         next()
     }
 })
-
-app.use(express.static('public'))
 
 var swaggerDoc = require('../doc/swagger.json');
 swaggerDoc.host = canonical_url.host

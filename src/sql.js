@@ -1,6 +1,7 @@
 'use strict';
 
-var debug = require('./debug')
+const debug = require('./debug')
+const _ = require('lodash')
 
 var database_url = process.env.DATABASE_URL;
 if (database_url === undefined) {
@@ -11,7 +12,7 @@ if (database_url === undefined) {
 if (database_url.indexOf("amazonaws.com") > -1)
     database_url = database_url + "?ssl=true"
 
-var sql = require('knex')({
+const sql = require('knex')({
     client: 'pg',
     connection: database_url,
     pool: {
@@ -25,5 +26,27 @@ sql.DATABASE_URL = database_url
 sql.on('query', (data) => {
     debug('sql', { query: data.sql, bindings: data.bindings })
 })
+
+sql.utils = {
+    parseNumbers: function(result) {
+        function parseOne(o) {
+            _.forEach(o, function(v, k, o) {
+                if (typeof v === 'string') {
+                    v = parseFloat(v)
+                    if (!isNaN(v))
+                        o[k] = v
+                }
+            })
+        }
+
+        if (_.isArray(result)) {
+            _.forEach(result, parseOne)
+        } else {
+            parseOne(result)
+        }
+
+        return result
+    }
+}
 
 module.exports = sql

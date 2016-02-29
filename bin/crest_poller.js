@@ -205,13 +205,7 @@ function importSingleOrderType(type_id, region_id) {
         return sql.transaction(function(trx) {
             return trx("market_polling").where({ type_id: type_id, region_id: region_id }).forUpdate().then(function() {
                 return trx("market_orders").where({ type_id: type_id, region_id: region_id }).forUpdate()
-            }).then(function(orders) {
-                _.forEach(orders, (o)=>{
-                    o.price = parseFloat(o.price)
-                    o.volume_remaining = parseInt(o.volume_remaining)
-                    o.volume_entered = parseInt(o.volume_entered)
-                })
-
+            }).tap(sql.utils.parseNumbers).then(function(orders) {
                 const change_stats = {
                     buy_orders_price_chg: 0,
                     buy_orders_vol_chg: 0,
@@ -255,7 +249,7 @@ function importSingleOrderType(type_id, region_id) {
 
                 function importItem(o) {
                     var buy_sell = o.buy ? 'buy' : 'sell'
-                    var row = _.find(orders, { id: o.id_str })
+                    var row = _.find(orders, { id: o.id })
                     var issueDate = lib.parseUTC(o.issued)
 
                     if (row === undefined) {
@@ -354,7 +348,7 @@ function importSingleOrderType(type_id, region_id) {
                             return null
                         })
                     } else {
-                        return o.id_str
+                        return o.id
                     }
                 }
 
@@ -365,7 +359,7 @@ function importSingleOrderType(type_id, region_id) {
                     var touch = _.compact(_.concat(untouched_sells, untouched_buys))
                     return trx("market_orders").whereIn('id', touch).update({ observed_at: now })
                 }).then(function() {
-                    var existing = _.concat(_.map(sell_orders.items, 'id_str'), _.map(buy_orders.items, 'id_str'))
+                    var existing = _.concat(_.map(sell_orders.items, 'id'), _.map(buy_orders.items, 'id'))
                     var stale_rows = _.reject(orders, function(o) { return _.includes(existing, o.id) })
 
                     // archive old orders

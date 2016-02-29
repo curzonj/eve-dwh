@@ -40,7 +40,7 @@ module.exports = function(io) {
 
         pubsub.usingSocket(socket, 'my_order_polling', function(msg) {
             bluebird.all([
-                character_order_details('market').where({ "c.type_id": msg.type_id, "c.region_id": msg.region_id }),
+                character_order_details('market').where({ "c.type_id": msg.type_id, "c.region_id": msg.region_id }).tap(sql.utils.parseNumbers),
                 //character_order_details('historical').where({ "c.type_id": msg.type_id, "c.region_id": msg.region_id })
             ]).spread((orders, old_orders) => {
                 debug('test', { orders: JSON.stringify(orders) })

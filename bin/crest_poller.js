@@ -442,6 +442,9 @@ function importSingleOrderType(type_id, region_id) {
                         const sellOrders = _.orderBy(stationOrders.sell[station_id] || [], [ 'price', 'issued' ], [ 'asc', 'asc' ])
                         const sellUnits = _.sum(_.map(sellOrders, 'volume'))
 
+                        const buyOrder_count = buyOrders.length
+                        const sellOrder_count = sellOrders.length
+
                         // The orders must already be properly sorted
                         function transactQuantity(target, orders) {
                             const acc = _.reduce(orders, (acc, o) => {
@@ -505,6 +508,8 @@ function importSingleOrderType(type_id, region_id) {
                                 buy_price_5pct: buy_price_5pct, 
                                 buy_price_median: buy_price_median,
                                 buy_units: buyUnits,
+                                buy_orders: buyOrder_count,
+                                sell_orders: sellOrder_count,
                                 sell_price_min: sell_price_min,
                                 sell_price_wavg: sell_price_wavg,
                                 sell_price_5pct: sell_price_5pct,
@@ -519,6 +524,8 @@ function importSingleOrderType(type_id, region_id) {
                                 buy_price_5pct: buy_price_5pct, 
                                 buy_price_median: buy_price_median,
                                 buy_units: buyUnits,
+                                buy_orders: buyOrder_count,
+                                sell_orders: sellOrder_count,
                                 sell_price_min: sell_price_min,
                                 sell_price_wavg: sell_price_wavg,
                                 sell_price_5pct: sell_price_5pct,

@@ -1,4 +1,4 @@
-drop view purchase_costs;
+drop view if exists purchase_costs;
 
 create view purchase_costs as
 select a2.*,

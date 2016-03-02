@@ -115,6 +115,8 @@ app.use(function(req, resp, next) {
     }
 })
 
+app.use(express.static('private'))
+
 var swaggerDoc = require('../doc/swagger.json');
 swaggerDoc.host = canonical_url.host
 

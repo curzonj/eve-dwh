@@ -50,6 +50,8 @@ _.assign(exports, {
     },
 
     findInterestingTypes: function() {
+        // TODO replace with
+        // select count(*) from "invTypes" where "marketGroupID" in (select market_group_id from market_group_arrays where NOT id_list && Array[350001, 1954, 1849, 1659, 1396, 150, 2] order by name_list);
         return exports.findInterestingMarketGroups().then(function(list) {
             return bluebird.all(_.map(_.chunk(list, 50), function (subList) {
                 return sql("invTypes").whereIn("marketGroupID", subList).pluck("typeID")
@@ -60,6 +62,8 @@ _.assign(exports, {
     },
 
     findInterestingMarketGroups: function() {
+        // TODO replace with
+        // select * from market_group_arrays where NOT id_list && Array[350001, 1954, 1849, 1659, 1396, 150, 2] order by name_list;
         var list = []
 
         function getSubGroups(id) {

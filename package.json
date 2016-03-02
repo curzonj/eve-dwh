@@ -52,14 +52,12 @@
     "knex": "latest",
     "neow": "latest"
   },
-  "jshintConfig": {
-    "esversion": 6,
-    "node": true,
-    "strict": true,
-    "newcap": false,
-    "asi": true
-  },
   "jscsConfig": {
-    "preset": "node-style-guide"
+    "preset": "node-style-guide",
+    "maximumLineLength": false,
+    "requireEarlyReturn": false,
+    "requireSpaceAfterBinaryOperators": false,
+    "requireSpaceBeforeBinaryOperators": false,
+    "requireCamelCaseOrUpperCaseIdentifiers": false
   }
 }

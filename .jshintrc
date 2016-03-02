@@ -1,0 +1,9 @@
+{
+  "esversion": 6,
+  "browser": true,
+  "browserify": true,
+  "strict": "global",
+  "devel": true,
+  "newcap": false,
+  "asi": true
+}

@@ -5,24 +5,18 @@
   "engines": {
     "node": ">=5.0.0"
   },
-  "scripts": {
-
-  },
-  "browserify": {
-    "transform": [
-      "envify"
-    ]
-  },
+  "scripts": {},
   "devDependencies": {
-    "require-dir": "^0.1.0",
+    "gulp": "^3.8.7",
     "gulp-batch": "latest",
-    "gulp-jscs": "latest",
-    "gulp-watch": "latest",
     "gulp-jsbeautifier": "latest",
+    "gulp-jscs": "latest",
     "gulp-jshint": "latest",
-    "jshint-stylish": "latest",
+    "gulp-watch": "latest",
     "jshint": "latest",
-    "gulp": "^3.8.7"
+    "jshint-stylish": "latest",
+    "require-dir": "^0.1.0",
+    "webpack": "^1.12.14"
   },
   "dependencies": {
     "passport.socketio": "latest",
@@ -45,7 +39,6 @@
     "pg": "latest",
     "moment": "latest",
     "envify": "latest",
-    "browserify": "latest",
     "node-static": "latest",
     "async-q": "latest",
     "pg-promise": "latest",

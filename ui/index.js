@@ -1,7 +1,11 @@
 'use strict';
 
+var $ = require('jquery')
+var io = require("socket.io-client");
+
 document.title = "Order Status"
 $('body').append('<ul id="messages"></ul>')
+$('head').append('<meta name="viewport" content="width=480">')
 
 if (window.Notification === undefined) {
         window.Notification = { requestPermission: function() { } }
@@ -14,6 +18,7 @@ $('#messages').on('click', '.an_order', function() {
 })
 
 var socket = io()
+
 function announceOrderOutBid(msg) {
     console.log(msg)
     var key = msg.type_id+'-'+msg.station_id

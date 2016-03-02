@@ -56,6 +56,9 @@
   "jscsConfig": {
     "preset": "node-style-guide",
     "maximumLineLength": false,
+    "requireCapitalizedConstructors": false,
+    "requireCurlyBraces": false,
+    "requireSpaceAfterLineComment": false,
     "requireEarlyReturn": false,
     "requireCapitalizedComments": false,
     "requireSpaceAfterBinaryOperators": false,

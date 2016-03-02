@@ -1,33 +1,22 @@
-select "typeName",
-b.price b_price,
-round(s.price * ((1 - 0.0075 - 0.015) / (1 + 0.0075)), 2) max_buy_offer_price,
-s.price,
-round(b.price * ((1 + 0.0075) / (1 - 0.0075 - 0.015)), 2) minimum_sell_offer_price
-from "invTypes"
-join best_station_buy b on ("invTypes"."typeID" = b.type_id AND b.station_id = 60003760)
-join best_station_sell s on ("invTypes"."typeID" = s.type_id AND s.station_id = 60003760)
-limit 50;
 
-select "typeName",
-round((s.price - b.price)/b.price, 4) margin,
-(s.price - b.price) profit,
-o.avg_quantity unit_volume,
-o.avg_orders order_volume
-from "invTypes"
-join best_station_buy b on ("invTypes"."typeID" = b.type_id AND b.station_id = 60003760)
-join best_station_sell s on ("invTypes"."typeID" = s.type_id AND s.station_id = 60003760)
-join order_frequencies o on ("invTypes"."typeID" = o.type_id AND o.region_id = 10000002)
-where o.avg_quantity > 200 and o.avg_orders > 20
-order by margin desc
-limit 50;
+-- The query used to find all of a customer's orders
+select
 
-where exists (select 1 from market_polling where type_id = "invTypes"."typeID" and orders_polling_interval = interval '5 minutes' limit 1);
+"m"."id", "m"."price", "m"."volume_entered", "m"."volume_remaining", "m"."station_id", "c"."character_id", "m"."region_id", "m"."buy",
+"c2"."name" as "character_name", "s2"."stationName" as "station_name", "s"."buy_price_max", "s"."sell_price_min", "c"."type_id", "i"."typeName" as "type_name",
 
-create materialized view best_station_buy as (select type_id, station_id, max(price) as price from market_orders where buy = true group by type_id, station_id);
-create index best_station_buy_index on best_station_buy (type_id, station_id);
-create materialized view best_station_sell as (select type_id, station_id, min(price) as price from market_orders where buy = sell group by type_id, station_id);
-create index best_station_sell_index on best_station_sell (type_id, station_id);
+case when m.buy then round((s.sell_price_min * 0.985) - (s.buy_price_max * 1.0075), 2) else round((s.sell_price_min - 0.01) * 0.985 - (select p.cost from purchase_costs p where p.station_id = m.station_id and p.type_id = m.type_id), 2) end profit
 
+from "character_order_details" as "c"
+inner join "market_orders" as "m" on "c"."id" = "m"."id"
+inner join "characters" as "c2" on "c"."character_id" = "c2"."character_id"
+inner join "staStations" as "s2" on "s2"."stationID" = "c"."station_id"
+inner join "invTypes" as "i" on "i"."typeID" = "c"."type_id"
+inner join "station_order_stats" as "s" on "s"."region_id" = "c"."region_id" and "s"."type_id" = "c"."type_id" and "s"."station_id" = "c"."station_id"
+
+
+
+-- some rough notes about calculating profit
 0 <= (sell_price * (1 - 0.015)) - buy_price * (1.0075)
 0 <= (sell_price * (0.985)) - buy_price * (1.0075)
 
@@ -36,7 +25,7 @@ create index best_station_sell_index on best_station_sell (type_id, station_id);
 buy_price <= (sell_price * (0.985 / 1.0075))
 
 0 <= (sell_price * (0.985)) - buy_price * (1.0075)
-0 <= buy_price * (-1.0075) + (sell_price * (0.985)) 
+0 <= buy_price * (-1.0075) + (sell_price * (0.985))
 0 <= buy_price * (-1.0075 / 0.985) + sell_price
 (-1) sell_price <= buy_price * (-1.0075 / 0.985)
 sell_price >= buy_price * (1.0075 / 0.985)

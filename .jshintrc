@@ -5,5 +5,10 @@
   "strict": "global",
   "devel": true,
   "newcap": false,
-  "asi": true
+  "asi": true,
+  "overrides": {
+    "src/**/*.js": {
+      "node": true
+    }
+  }
 }

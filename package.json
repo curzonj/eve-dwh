@@ -14,6 +14,7 @@
     "gulp-jscs": "latest",
     "gulp-jshint": "latest",
     "gulp-watch": "latest",
+    "gulp-webpack": "^1.5.0",
     "jquery": "^2.2.1",
     "jshint": "latest",
     "jshint-stylish": "latest",

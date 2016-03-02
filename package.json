@@ -56,6 +56,7 @@
     "preset": "node-style-guide",
     "maximumLineLength": false,
     "requireEarlyReturn": false,
+    "requireCapitalizedComments": false,
     "requireSpaceAfterBinaryOperators": false,
     "requireSpaceBeforeBinaryOperators": false,
     "requireCamelCaseOrUpperCaseIdentifiers": false

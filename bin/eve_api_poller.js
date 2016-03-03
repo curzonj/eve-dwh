@@ -227,7 +227,7 @@ lib.cronTask(21600, function() {
         return sql('character_order_details').whereNotIn('character_id', _.keys(orders_by_char)).delete()
       }).then(function() {
         return sql.raw(
-          'UPDATE market_polling m set orders_polling_override = orders_polling_interval, orders_polling_interval = interval \'5 minutes\', orders_next_polling_at = now() from character_order_details c where c.type_id = m.type_id and c.region_id = m.region_id and order_state = 0 and m.orders_polling_override is null; '
+          'UPDATE market_polling m set orders_polling_override = orders_polling_interval, orders_polling_interval = interval \'5 minutes\', orders_next_polling_at = now() from character_order_details c where c.type_id = m.type_id and c.region_id = m.region_id and m.orders_polling_override is null; '
         )
       })
     })

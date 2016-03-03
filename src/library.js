@@ -36,7 +36,9 @@ _.assign(exports, {
     function scheduleNext() {
       var start = moment()
 
-      return fn().catch(function(e) {
+      return bluebird.try(function() {
+        fn()
+      }).catch(function(e) {
         logfmt.error(e)
       }).then(function(nextRun) {
         var delay = (interval * 1000) - moment().diff(start)
@@ -74,7 +76,7 @@ _.assign(exports, {
 
     function getSubGroups(id) {
       return sql('invMarketGroups').where({
-        parentGroupID: id
+        parentGroupID: id,
       }).select('hasTypes', 'marketGroupID').
       then(function(rows) {
         return bluebird.map(rows, function(row) {
@@ -128,7 +130,7 @@ _.assign(exports, {
       return fn().catch(function(e) {
         rollbar.handleError(e)
         logfmt.namespace({
-          fn: 'pollingLoop'
+          fn: 'pollingLoop',
         }).error(e)
       }).then(function(sleep) {
         var delay = 1
@@ -153,12 +155,12 @@ _.assign(exports, {
           return bluebird.try(function() {
             return sql('corporations').insert({
               corporation_id: parseInt(ceo.corporationID),
-              name: ceo.corporationName
+              name: ceo.corporationName,
             })
           }).then(function() {
             return sql('managed_corps').insert({
               corporation_id: parseInt(ceo.corporationID),
-              key_id: key_row.key_id
+              key_id: key_row.key_id,
             })
           })
         })
@@ -175,16 +177,16 @@ _.assign(exports, {
           return bluebird.each(_.values(result.characters), function(character) {
             return sql.raw(sql('characters').insert({
               character_id: parseInt(character.characterID),
-              name: sql.raw('?')
+              name: sql.raw('?'),
             }).toString() + ' ON CONFLICT (character_id) DO NOTHING', [character.name]).then(function() {
               return sql.raw(sql('managed_characters').insert({
                 character_id: parseInt(character.characterID),
-                key_id: key_row.key_id
+                key_id: key_row.key_id,
               }).toString() + ' ON CONFLICT (character_id) DO NOTHING')
             })
           })
         })
       })
     })
-  }
+  },
 })

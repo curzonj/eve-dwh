@@ -173,6 +173,7 @@ lib.cronTask(1800, function() {
 lib.cronTask(21600, function() {
   return bluebird.try(function() {
     // market orders
+    const orders_by_char = {}
     return eachApiKeyTarget('MarketOrders', function(client, char_id, corp_id) {
       return bluebird.try(function() {
         if (char_id === null) {
@@ -185,7 +186,8 @@ lib.cronTask(21600, function() {
           })
         }
       }).then(function(data) {
-        return bluebird.map(_.values(data.orders),
+        return bluebird.map(
+          _.reject(_.values(data.orders), (o)=> { return o.orderState !== '0' }),
           function(t) {
             lib.debug('import', {
               at: 'order',
@@ -193,9 +195,15 @@ lib.cronTask(21600, function() {
             })
             var station_id = parseInt(t.stationID)
 
+            const order_id = parseInt(t.orderID)
+            const character_id = parseInt(t.charID)
+            const char_order_list = orders_by_char[character_id] || []
+            orders_by_char[character_id] = char_order_list
+            char_order_list.push(order_id)
+
             return sql.raw(sql('character_order_details').insert({
-              id: parseInt(t.orderID),
-              character_id: parseInt(t.charID),
+              id: order_id,
+              character_id: character_id,
               order_state: parseInt(t.orderState),
               account_key: parseInt(t.accountKey),
               escrow: parseFloat(t.escrow).toFixed(2),
@@ -205,13 +213,22 @@ lib.cronTask(21600, function() {
               region_id: sql('staStations').select('regionID').where({
                 stationID: station_id,
               }),
-            }).toString() + ' ON CONFLICT (id) DO UPDATE SET order_state = EXCLUDED.order_state, issued_at = EXCLUDED.issued_at')
+            }).toString() + ' ON CONFLICT (id) DO UPDATE SET escrow = EXCLUDED.escrow, issued_at = EXCLUDED.issued_at')
           }, {
             concurrency: 10,
           })
       }).then(function() {
-        return sql.raw('UPDATE market_polling m set orders_polling_override = orders_polling_interval, orders_polling_interval = interval \'5 minutes\', orders_next_polling_at = now() from character_order_details c where c.type_id = m.type_id and c.region_id = m.region_id and order_state = 0 and m.orders_polling_override is null; ' +
-          'UPDATE market_polling m set orders_polling_interval = orders_polling_override, orders_polling_override = null where orders_polling_override is not null and NOT EXISTS(select 1 from character_order_details c where c.type_id = m.type_id and c.region_id = m.region_id and order_state = 0);')
+        return bluebird.each(_.keys(orders_by_char), function(char_id) {
+          return sql('character_order_details')
+          .where('character_id', char_id)
+          .whereNotIn('id', orders_by_char[char_id]).delete()
+        })
+      }).then(function() {
+        return sql('character_order_details').whereNotIn('character_id', _.keys(orders_by_char)).delete()
+      }).then(function() {
+        return sql.raw(
+          'UPDATE market_polling m set orders_polling_override = orders_polling_interval, orders_polling_interval = interval \'5 minutes\', orders_next_polling_at = now() from character_order_details c where c.type_id = m.type_id and c.region_id = m.region_id and order_state = 0 and m.orders_polling_override is null; '
+        )
       })
     })
   })
@@ -219,6 +236,7 @@ lib.cronTask(21600, function() {
 
 // 2hr timer, assets
 lib.cronTask(7200, function() {
+  return false
   return bluebird.try(function() {
     var virtual = {}
 

@@ -7,4 +7,4 @@
 set -x
 set -e
 
-exec pg_restore --verbose --clean --no-acl --no-owner -d eve-dwh postgres-latest.dmp
+exec pg_restore --verbose --clean --no-acl --no-owner -d eve-dwh dumps/postgres-latest.dmp

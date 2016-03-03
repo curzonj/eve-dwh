@@ -1,0 +1,4 @@
+alter table character_order_details
+  drop constraint character_order_details_region_id_fkey,
+  drop constraint character_order_details_station_id_fkey,
+  drop constraint character_order_details_type_id_fkey;

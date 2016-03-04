@@ -170,7 +170,7 @@ lib.cronTask(1800, function() {
 })
 
 // 1hr timer, market orders, planetary interaction
-lib.cronTask(21600, function() {
+lib.cronTask(3600, function() {
   return bluebird.try(function() {
     // market orders
     const orders_by_char = {}

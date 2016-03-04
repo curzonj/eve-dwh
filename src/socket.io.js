@@ -34,17 +34,13 @@ module.exports = function(io) {
         debug('test', {
           orders: JSON.stringify(orders),
         })
-        _.forEach(orders, (o) => {
-          socket.emit('order_status', o)
-        })
+        socket.emit('order_status', orders)
         //_.forEach(old_orders, (o) => { socket.emit('old_orders', o) })
       })
     })
 
     queries.character_order_details('market').tap(sql.utils.parseNumbers).then(function(orders) {
-      _.forEach(orders, (o) => {
-        socket.emit('order_announcement', o)
-      })
+      socket.emit('order_announcement', orders)
     })
   }))
 }

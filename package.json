@@ -22,6 +22,7 @@
     "webpack": "^1.12.14"
   },
   "dependencies": {
+    "express-handlebars": "latest",
     "passport.socketio": "latest",
     "helmet": "latest",
     "express-enforces-ssl": "latest",

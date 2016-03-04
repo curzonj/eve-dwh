@@ -2,6 +2,7 @@
 
 var $ = require('jquery')
 var io = require('socket.io-client')
+var _ = require('lodash')
 
 document.title = 'Order Status'
 $('body').append('<ul id="messages"></ul>')
@@ -47,16 +48,27 @@ function announceOrderOutBid(msg) {
   }
 }
 
-socket.on('order_announcement', announceOrderOutBid)
+/*
+group the orders by type_id, region_id, and buy,
+return just the best priced record
+*/
 
-socket.on('order_status', function(msg) {
-  if (announceOrderOutBid(msg)) {
-    var system_name = msg.station_name.split(' ')[0]
-    Notification.requestPermission(function() {
-      var term = msg.buy ? 'Buy' : 'Sell'
-      var notification = new Notification(term+' order for '+msg.type_name+' outbid in '+system_name, {
-        icon: 'https://image.eveonline.com/Type/'+ msg.type_id +'_64.png',
+socket.on('order_announcement', function(orders) {
+  _.forEach(orders, (msg) => {
+    announceOrderOutBid(msg)
+  })
+})
+
+socket.on('order_status', function(orders) {
+  _.forEach(orders, (msg) => {
+    if (announceOrderOutBid(msg)) {
+      var system_name = msg.station_name.split(' ')[0]
+      Notification.requestPermission(function() {
+        var term = msg.buy ? 'Buy' : 'Sell'
+        var notification = new Notification(term+' order for '+msg.type_name+' outbid in '+system_name, {
+          icon: 'https://image.eveonline.com/Type/'+ msg.type_id +'_64.png',
+        })
       })
-    })
-  }
+    }
+  })
 })

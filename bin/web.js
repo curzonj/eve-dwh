@@ -29,6 +29,14 @@ const app = express()
 const canonical_url = urlUtil.parse(process.env.CANONICAL_URL)
 const useSSL = (canonical_url.protocol === 'https:')
 
+const exphbs  = require('express-handlebars');
+app.engine('html', exphbs({
+  defaultLayout: 'main',
+  extname: '.html',
+}));
+app.set('view engine', 'html');
+
+
 if (useSSL) {
   debug('http', 'Enabling SSL Enforcement')
   app.enable('trust proxy')
@@ -122,6 +130,17 @@ var eve_online_authenticate_middleware = passport.authenticate('eveonline')
 app.use(function(req, resp, next) {
   if (req.user === undefined) {
     return eve_online_authenticate_middleware(req, resp, next)
+  } else {
+    next()
+  }
+})
+
+app.use(function(req, resp, next) {
+  if (
+    req.headers['user-agent'].match(/EVE-IGB/) &&
+    !req.path.match(/^\/igb/)
+  ) {
+    resp.redirect('/igb')
   } else {
     next()
   }

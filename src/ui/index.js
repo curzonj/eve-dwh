@@ -5,8 +5,6 @@ var io = require('socket.io-client')
 var _ = require('lodash')
 
 document.title = 'Order Status'
-$('body').append('<ul id="messages"></ul>')
-$('head').append('<meta name="viewport" content="width=480">')
 
 if (window.Notification === undefined) {
   window.Notification = { requestPermission: function() { } }
@@ -19,6 +17,17 @@ $('#messages').on('click', '.an_order', function() {
 })
 
 var socket = io()
+
+function reportSocketError(e) {
+  console.log(e)
+  if ($('div#conn-error-alert').length === 0) {
+    $('div#alerts').append(require('./connection_alert.hbs'))
+  }
+}
+
+socket.on('connect_error', reportSocketError)
+socket.on('reconnect_error', reportSocketError)
+socket.on('reconnect_failed', reportSocketError)
 
 function announceOrderOutBid(msg) {
   console.log(msg)

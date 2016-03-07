@@ -5,7 +5,11 @@ var router = express.Router();
 
 // Put this behind authentication
 router.get('/', function(req, res) {
-  res.redirect('/test.html')
+  if (req.is_igb) {
+    res.render('orders.igb', { layout: 'igb' })
+  } else {
+    res.render('orders')
+  }
 })
 
 module.exports = router

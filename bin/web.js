@@ -136,14 +136,8 @@ app.use(function(req, resp, next) {
 })
 
 app.use(function(req, resp, next) {
-  if (
-    req.headers['user-agent'].match(/EVE-IGB/) &&
-    !req.path.match(/^\/igb/)
-  ) {
-    resp.redirect('/igb')
-  } else {
-    next()
-  }
+  req.is_igb = req.headers['user-agent'].match(/EVE-IGB/)
+  next()
 })
 
 app.use(express.static('private'))

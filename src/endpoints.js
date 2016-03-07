@@ -4,5 +4,4 @@ module.exports = function(app) {
   app.use('/api', require('./endpoints/api'))
   app.use('/_', require('./endpoints/debug'))
   app.use('/', require('./endpoints/ui'))
-  app.use('/igb', require('./endpoints/igb'))
 }

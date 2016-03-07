@@ -30,11 +30,11 @@ const canonical_url = urlUtil.parse(process.env.CANONICAL_URL)
 const useSSL = (canonical_url.protocol === 'https:')
 
 const exphbs  = require('express-handlebars');
-app.engine('html', exphbs({
+app.engine('hbs', exphbs({
   defaultLayout: 'main',
-  extname: '.html',
+  extname: '.hbs',
 }));
-app.set('view engine', 'html');
+app.set('view engine', 'hbs');
 
 
 if (useSSL) {

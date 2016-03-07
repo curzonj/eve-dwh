@@ -1,6 +1,8 @@
 'use strict';
 
-var $ = require('jquery')
+require('./pie_timer')
+
+var $ = global.$
 var io = require('socket.io-client')
 var _ = require('lodash')
 
@@ -15,6 +17,15 @@ Notification.requestPermission(function() {})
 $('#messages').on('click', '.an_order', function() {
   $(this).remove()
 })
+
+$('#testing').pietimer({
+  seconds: 30,
+  start_with: 28,
+  color: 'rgba(0, 0, 0, 0.8)',
+  height: 100,
+  width: 100,
+}, function() {})
+$('#testing').pietimer('start')
 
 var socket = io()
 

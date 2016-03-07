@@ -55,7 +55,8 @@ lib.cronTask(300, function() {
         const last_id = Math.max.apply(null, _.map(data, 'killID'))
         logfmt.log({ fn: 'zkillboard.js', at: 'finish', last_kill_id: last_id })
 
-        last_kill_id_p = bluebird.resolve(last_id)
+        if (!isNaN(last_id) && last_id > 0 && last_id !== Infinity)
+          last_kill_id_p = bluebird.resolve(last_id)
       }
     })
   })

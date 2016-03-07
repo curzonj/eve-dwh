@@ -9,6 +9,7 @@ const _ = require('lodash')
 const lib = require('../src/library')
 const sql = require('../src/sql')
 const debug = require('../src/debug')
+const neow = require('neow')
 
 lib.setupSignalHandlers()
 
@@ -234,9 +235,37 @@ lib.cronTask(3600, function() {
   })
 })
 
+// 1hr timer, map statistics
+lib.cronTask(3600, function() {
+  const client = new neow.EveClient({}, null, lib.neowCache)
+  return bluebird.all([
+    limitClient(client, 'map:kills', {}).then(data => { return data.solarSystems }),
+    limitClient(client, 'map:Jumps', {}).then(data => { return data.solarSystems }),
+  ]).spread((kills, jumps) => {
+    const system_ids = _.union(_.keys(kills), _.keys(jumps))
+    const now = new Date()
+    const hour = now.getHours()
+
+    return bluebird.each(system_ids, id => {
+      return sql.raw(sql('eve_map_stats').insert({
+        region_id: sql('mapSolarSystems').select('regionID').where({
+          solarSystemID: id,
+        }),
+        system_id: id,
+        date_of: now,
+        hour: hour,
+
+        ship_kills: _.get(kills[id], 'shipKills'),
+        pod_kills: _.get(kills[id], 'podKills'),
+        npc_kills: _.get(kills[id], 'factionKills'),
+        jumps: _.get(jumps[id], 'shipJumps'),
+      }).toString() + 'ON CONFLICT (system_id, date_of, hour) DO NOTHING')
+    })
+  })
+})
+
 // 2hr timer, assets
 lib.cronTask(7200, function() {
-  return false
   return bluebird.try(function() {
     var virtual = {}
 

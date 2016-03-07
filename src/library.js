@@ -28,6 +28,7 @@ _.assign(exports, {
   debug: debug,
   sql: sql,
   rollbar: rollbar,
+  neowCache: neowCache,
   buildEveClient: buildEveClient,
   parseUTC: function(str) {
     return new Date(str + '+00:00')

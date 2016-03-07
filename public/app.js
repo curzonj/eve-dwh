@@ -64,15 +64,6 @@
 	  $(this).remove()
 	})
 
-	$('#testing').pietimer({
-	  seconds: 30,
-	  start_with: 28,
-	  color: 'rgba(0, 0, 0, 0.8)',
-	  height: 100,
-	  width: 100,
-	}, function() {})
-	$('#testing').pietimer('start')
-
 	var socket = io()
 
 	function reportSocketError(e) {
@@ -91,26 +82,45 @@
 	  var term = msg.buy ? 'buy' : 'sell'
 	  var key = msg.type_id+'-'+msg.station_id+'-'+term
 	  var existing_elem = $('#'+key)
+	  var notify = false
 
 	  if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
 	    var system_name = msg.station_name.split(' ')[0]
 	    var profit = msg.profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
 	    var klass = msg.profit > 0 ? 'gain' : 'loss'
 
-	    var dom = $('<li class="an_order" id="'+key+'">')
-	    dom.append('<img style="float:left; margin: 0px 15px 5px 0px;" align="top" src="https://image.eveonline.com/Type/'+ msg.type_id +'_64.png">')
-	    dom.append('<div style="margin: 20px 0px 0px;"><span><b>'+system_name+'</b> '+term+' order by '+msg.character_name+' outbid.<br/></span><b>'+ msg.type_name+'</b> <span class="'+klass+'">Current Profit: '+profit+'</span></div>')
-	    dom.append('<br style="clear: both;" />')
+	    var dom = $(__webpack_require__(70)({
+	      key: key,
+	      term: term,
+	      type_id: msg.type_id,
+	      system_name: system_name,
+	      character_name: msg.character_name,
+	      type_name: msg.type_name,
+	      klass: klass,
+	      profit: profit,
+	    }))
 
 	    if (existing_elem.length) {
 	      console.log('replacing '+key)
 	      existing_elem.replaceWith(dom)
-	      return false
 	    } else {
 	      console.log('adding new '+key)
 	      $('#messages').append(dom)
-	      return true
+	      existing_elem = $('#'+key)
+	      notify = true
 	    }
+
+	    var new_elem = $('#'+key+' > .order_pie')
+	    new_elem.pietimer({
+	      seconds: 300,
+	      start_with: 300,
+	      color: 'rgba(0, 0, 0, 0.3)',
+	      height: 20,
+	      width: 20,
+	    }, function() {})
+	    new_elem.pietimer('start')
+
+	    return notify
 	  } else {
 	    console.log(key+' is not outbid')
 	    existing_elem.remove()
@@ -23857,6 +23867,33 @@
 	//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uLy4uLy4uL2xpYi9oYW5kbGViYXJzL25vLWNvbmZsaWN0LmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7O3FCQUNlLFVBQVMsVUFBVSxFQUFFOztBQUVsQyxNQUFJLElBQUksR0FBRyxPQUFPLE1BQU0sS0FBSyxXQUFXLEdBQUcsTUFBTSxHQUFHLE1BQU07TUFDdEQsV0FBVyxHQUFHLElBQUksQ0FBQyxVQUFVLENBQUM7O0FBRWxDLFlBQVUsQ0FBQyxVQUFVLEdBQUcsWUFBVztBQUNqQyxRQUFJLElBQUksQ0FBQyxVQUFVLEtBQUssVUFBVSxFQUFFO0FBQ2xDLFVBQUksQ0FBQyxVQUFVLEdBQUcsV0FBVyxDQUFDO0tBQy9CO0FBQ0QsV0FBTyxVQUFVLENBQUM7R0FDbkIsQ0FBQztDQUNIIiwiZmlsZSI6Im5vLWNvbmZsaWN0LmpzIiwic291cmNlc0NvbnRlbnQiOlsiLyogZ2xvYmFsIHdpbmRvdyAqL1xuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24oSGFuZGxlYmFycykge1xuICAvKiBpc3RhbmJ1bCBpZ25vcmUgbmV4dCAqL1xuICBsZXQgcm9vdCA9IHR5cGVvZiBnbG9iYWwgIT09ICd1bmRlZmluZWQnID8gZ2xvYmFsIDogd2luZG93LFxuICAgICAgJEhhbmRsZWJhcnMgPSByb290LkhhbmRsZWJhcnM7XG4gIC8qIGlzdGFuYnVsIGlnbm9yZSBuZXh0ICovXG4gIEhhbmRsZWJhcnMubm9Db25mbGljdCA9IGZ1bmN0aW9uKCkge1xuICAgIGlmIChyb290LkhhbmRsZWJhcnMgPT09IEhhbmRsZWJhcnMpIHtcbiAgICAgIHJvb3QuSGFuZGxlYmFycyA9ICRIYW5kbGViYXJzO1xuICAgIH1cbiAgICByZXR1cm4gSGFuZGxlYmFycztcbiAgfTtcbn1cbiJdfQ==
 
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 70 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Handlebars = __webpack_require__(51);
+	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+	    var helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3="function", alias4=container.escapeExpression;
+
+	  return "<li class=\"an_order\" id=\""
+	    + alias4(((helper = (helper = helpers.key || (depth0 != null ? depth0.key : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"key","hash":{},"data":data}) : helper)))
+	    + "\">\n  <img style=\"float:left; margin: 0px 15px 5px 0px;\" align=\"top\" src=\"https://image.eveonline.com/Type/"
+	    + alias4(((helper = (helper = helpers.type_id || (depth0 != null ? depth0.type_id : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"type_id","hash":{},"data":data}) : helper)))
+	    + "_64.png\">\n  <div style=\"float: right;\" class=\"order_pie\"></div>\n\n  <div style=\"margin: 20px 0px 0px;\">\n    <span><b>"
+	    + alias4(((helper = (helper = helpers.system_name || (depth0 != null ? depth0.system_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"system_name","hash":{},"data":data}) : helper)))
+	    + "</b> "
+	    + alias4(((helper = (helper = helpers.term || (depth0 != null ? depth0.term : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"term","hash":{},"data":data}) : helper)))
+	    + " order by "
+	    + alias4(((helper = (helper = helpers.character_name || (depth0 != null ? depth0.character_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"character_name","hash":{},"data":data}) : helper)))
+	    + " outbid.</span>\n    <br/>\n    <b>"
+	    + alias4(((helper = (helper = helpers.type_name || (depth0 != null ? depth0.type_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"type_name","hash":{},"data":data}) : helper)))
+	    + "</b> <span class=\""
+	    + alias4(((helper = (helper = helpers.klass || (depth0 != null ? depth0.klass : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"klass","hash":{},"data":data}) : helper)))
+	    + "\">Current Profit: "
+	    + alias4(((helper = (helper = helpers.profit || (depth0 != null ? depth0.profit : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"profit","hash":{},"data":data}) : helper)))
+	    + "</span>\n  </div>\n  <br style=\"clear: both;\" />\n</li>\n";
+	},"useData":true});
 
 /***/ }
 /******/ ]);

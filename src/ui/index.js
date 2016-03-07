@@ -18,15 +18,6 @@ $('#messages').on('click', '.an_order', function() {
   $(this).remove()
 })
 
-$('#testing').pietimer({
-  seconds: 30,
-  start_with: 28,
-  color: 'rgba(0, 0, 0, 0.8)',
-  height: 100,
-  width: 100,
-}, function() {})
-$('#testing').pietimer('start')
-
 var socket = io()
 
 function reportSocketError(e) {
@@ -45,26 +36,45 @@ function announceOrderOutBid(msg) {
   var term = msg.buy ? 'buy' : 'sell'
   var key = msg.type_id+'-'+msg.station_id+'-'+term
   var existing_elem = $('#'+key)
+  var notify = false
 
   if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
     var system_name = msg.station_name.split(' ')[0]
     var profit = msg.profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
     var klass = msg.profit > 0 ? 'gain' : 'loss'
 
-    var dom = $('<li class="an_order" id="'+key+'">')
-    dom.append('<img style="float:left; margin: 0px 15px 5px 0px;" align="top" src="https://image.eveonline.com/Type/'+ msg.type_id +'_64.png">')
-    dom.append('<div style="margin: 20px 0px 0px;"><span><b>'+system_name+'</b> '+term+' order by '+msg.character_name+' outbid.<br/></span><b>'+ msg.type_name+'</b> <span class="'+klass+'">Current Profit: '+profit+'</span></div>')
-    dom.append('<br style="clear: both;" />')
+    var dom = $(require('./order_outbid.hbs')({
+      key: key,
+      term: term,
+      type_id: msg.type_id,
+      system_name: system_name,
+      character_name: msg.character_name,
+      type_name: msg.type_name,
+      klass: klass,
+      profit: profit,
+    }))
 
     if (existing_elem.length) {
       console.log('replacing '+key)
       existing_elem.replaceWith(dom)
-      return false
     } else {
       console.log('adding new '+key)
       $('#messages').append(dom)
-      return true
+      existing_elem = $('#'+key)
+      notify = true
     }
+
+    var new_elem = $('#'+key+' > .order_pie')
+    new_elem.pietimer({
+      seconds: 300,
+      start_with: 300,
+      color: 'rgba(0, 0, 0, 0.3)',
+      height: 20,
+      width: 20,
+    }, function() {})
+    new_elem.pietimer('start')
+
+    return notify
   } else {
     console.log(key+' is not outbid')
     existing_elem.remove()

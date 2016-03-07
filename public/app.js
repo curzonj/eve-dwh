@@ -68,12 +68,12 @@
 
 	function announceOrderOutBid(msg) {
 	  console.log(msg)
-	  var key = msg.type_id + '-'+msg.station_id
+	  var term = msg.buy ? 'buy' : 'sell'
+	  var key = msg.type_id+'-'+msg.station_id+'-'+term
 	  var existing_elem = $('#'+key)
 
 	  if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
 	    var system_name = msg.station_name.split(' ')[0]
-	    var term = msg.buy ? 'buy' : 'sell'
 	    var profit = msg.profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
 	    var klass = msg.profit > 0 ? 'gain' : 'loss'
 
@@ -83,13 +83,16 @@
 	    dom.append('<br style="clear: both;" />')
 
 	    if (existing_elem.length) {
+	      console.log('replacing '+key)
 	      existing_elem.replaceWith(dom)
 	      return false
 	    } else {
+	      console.log('adding new '+key)
 	      $('#messages').append(dom)
 	      return true
 	    }
 	  } else {
+	    console.log(key+' is not outbid')
 	    existing_elem.remove()
 	  }
 	}

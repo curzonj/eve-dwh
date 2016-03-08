@@ -39,19 +39,16 @@ function announceOrderOutBid(msg) {
   var notify = false
 
   if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
-    var system_name = msg.station_name.split(' ')[0]
-    var profit = msg.profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
-    var klass = msg.profit > 0 ? 'gain' : 'loss'
-
     var dom = $(require('./order_outbid.hbs')({
       key: key,
       term: term,
       type_id: msg.type_id,
-      system_name: system_name,
+      system_name: msg.station_name.split(' ')[0],
       character_name: msg.character_name,
       type_name: msg.type_name,
-      klass: klass,
-      profit: profit,
+      klass: msg.market_profit > 0 ? 'gain' : 'loss',
+      profit: msg.market_profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,'),
+      price_change_profit_pct: (100 * msg.price_change / msg.current_profit).toFixed(2),
     }))
 
     if (existing_elem.length) {

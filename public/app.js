@@ -85,19 +85,16 @@
 	  var notify = false
 
 	  if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
-	    var system_name = msg.station_name.split(' ')[0]
-	    var profit = msg.profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,');
-	    var klass = msg.profit > 0 ? 'gain' : 'loss'
-
 	    var dom = $(__webpack_require__(70)({
 	      key: key,
 	      term: term,
 	      type_id: msg.type_id,
-	      system_name: system_name,
+	      system_name: msg.station_name.split(' ')[0],
 	      character_name: msg.character_name,
 	      type_name: msg.type_name,
-	      klass: klass,
-	      profit: profit,
+	      klass: msg.market_profit > 0 ? 'gain' : 'loss',
+	      profit: msg.market_profit.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,'),
+	      price_change_profit_pct: (100 * msg.price_change / msg.current_profit).toFixed(2),
 	    }))
 
 	    if (existing_elem.length) {
@@ -23880,7 +23877,7 @@
 	    + alias4(((helper = (helper = helpers.key || (depth0 != null ? depth0.key : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"key","hash":{},"data":data}) : helper)))
 	    + "\">\n  <img style=\"float:left; margin: 0px 15px 5px 0px;\" align=\"top\" src=\"https://image.eveonline.com/Type/"
 	    + alias4(((helper = (helper = helpers.type_id || (depth0 != null ? depth0.type_id : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"type_id","hash":{},"data":data}) : helper)))
-	    + "_64.png\">\n  <div style=\"float: right;\" class=\"order_pie\"></div>\n\n  <div style=\"margin: 20px 0px 0px;\">\n    <span><b>"
+	    + "_64.png\">\n  <div style=\"float: right;\" class=\"order_pie\"></div>\n\n  <div style=\"margin: 5px 0px 5px 0px;\">\n    <span><b>"
 	    + alias4(((helper = (helper = helpers.system_name || (depth0 != null ? depth0.system_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"system_name","hash":{},"data":data}) : helper)))
 	    + "</b> "
 	    + alias4(((helper = (helper = helpers.term || (depth0 != null ? depth0.term : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"term","hash":{},"data":data}) : helper)))
@@ -23888,11 +23885,13 @@
 	    + alias4(((helper = (helper = helpers.character_name || (depth0 != null ? depth0.character_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"character_name","hash":{},"data":data}) : helper)))
 	    + " outbid.</span>\n    <br/>\n    <b>"
 	    + alias4(((helper = (helper = helpers.type_name || (depth0 != null ? depth0.type_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"type_name","hash":{},"data":data}) : helper)))
-	    + "</b> <span class=\""
+	    + "</b>\n    <br/>\n    <span class=\""
 	    + alias4(((helper = (helper = helpers.klass || (depth0 != null ? depth0.klass : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"klass","hash":{},"data":data}) : helper)))
-	    + "\">Current Profit: "
+	    + "\">Profit: "
 	    + alias4(((helper = (helper = helpers.profit || (depth0 != null ? depth0.profit : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"profit","hash":{},"data":data}) : helper)))
-	    + "</span>\n  </div>\n  <br style=\"clear: both;\" />\n</li>\n";
+	    + "</span> -\n    <span>Chg %: "
+	    + alias4(((helper = (helper = helpers.price_change_profit_pct || (depth0 != null ? depth0.price_change_profit_pct : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"price_change_profit_pct","hash":{},"data":data}) : helper)))
+	    + "</span>\n  </div>\n  <span style=\"clear: both;\" />\n</li>\n";
 	},"useData":true});
 
 /***/ }

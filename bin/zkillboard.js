@@ -22,7 +22,7 @@ var last_kill_id_p = sql('zkillboard_data').max('kill_id').then(result => {
 lib.cronTask(300, function() {
   return last_kill_id_p.then((last_kill_id) => {
     var url = 'https://zkillboard.com/api/no-attackers/afterKillID/'+last_kill_id+
-              '/endTime/'+moment().utc().format('YYYYMMDDHHmm')+'/'
+              '/endTime/'+moment().utc().format('YYYYMMDDHHmm')+'/orderDirection/asc/'
 
     logfmt.log({ fn: 'zkillboard.js', at: 'fetch', url: url })
 

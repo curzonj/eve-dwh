@@ -270,6 +270,8 @@ function importSingleOrderType(type_id, region_id) {
           buy_price_wavg_sold: 0,
           buy_price_min_sold: 0,
           buy_price_max_sold: 0,
+          new_buy_order_units: 0,
+          new_sell_order_units: 0,
           sell_orders_price_chg: 0,
           sell_orders_vol_chg: 0,
           sell_orders_disappeared: 0,
@@ -350,6 +352,7 @@ function importSingleOrderType(type_id, region_id) {
               })
             }).then(function() {
               incrementStats(o.location.id, 'new_' + buy_sell + '_orders')
+              incrementStats(o.location.id, 'new_' + buy_sell + '_order_units', o.volume)
 
               return trx.raw(sql('market_order_changes').insert({
                 order_id: o.id,
@@ -522,9 +525,11 @@ function importSingleOrderType(type_id, region_id) {
             })
             buyOrders = _.orderBy(buyOrders, ['price', 'issued'], ['desc', 'asc'])
             const buyUnits = _.sum(_.map(buyOrders, 'volume'))
+            const buyOrderData = _.map(buyOrders, o => { return [ o.price, o.volume ]})
 
             const sellOrders = _.orderBy(stationOrders.sell[station_id] || [], ['price', 'issued'], ['asc', 'asc'])
             const sellUnits = _.sum(_.map(sellOrders, 'volume'))
+            const sellOrderData = _.map(sellOrders, o => { return [ o.price, o.volume ]})
 
             const buyOrder_count = buyOrders.length
             const sellOrder_count = sellOrders.length
@@ -601,6 +606,7 @@ function importSingleOrderType(type_id, region_id) {
                 region_id: region_id,
                 calculated_at: now,
                 last_updated_at: last_stats.updated_at || '2000-01-01 00:00:01 -8:00',
+                buy_order_data: JSON.stringify(buyOrderData),
                 buy_price_max: maxBuyPrice,
                 buy_price_wavg: buy_price_wavg,
                 buy_price_5pct: buy_price_5pct,
@@ -608,6 +614,7 @@ function importSingleOrderType(type_id, region_id) {
                 buy_units: buyUnits,
                 buy_orders: buyOrder_count,
                 sell_orders: sellOrder_count,
+                sell_order_data: JSON.stringify(sellOrderData),
                 sell_price_min: sell_price_min,
                 sell_price_wavg: sell_price_wavg,
                 sell_price_5pct: sell_price_5pct,

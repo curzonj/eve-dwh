@@ -5,6 +5,7 @@ require('./pie_timer')
 var $ = global.$
 var io = require('socket.io-client')
 var _ = require('lodash')
+var handlebars = require('handlebars/dist/handlebars')
 
 document.title = 'Order Status'
 
@@ -89,6 +90,7 @@ socket.on('order_announcement', function(orders) {
   })
 })
 
+var outbid_body = handlebars.compile('Profit {{profit}}% - Chg {{chg}}%')
 socket.on('order_status', function(orders) {
   _.forEach(orders, (msg) => {
     if (announceOrderOutBid(msg)) {
@@ -96,6 +98,10 @@ socket.on('order_status', function(orders) {
       Notification.requestPermission(function() {
         var term = msg.buy ? 'Buy' : 'Sell'
         var notification = new Notification(term+' order for '+msg.type_name+' outbid in '+system_name, {
+          body: outbid_body({
+            profit: (100 * msg.market_profit / (msg.buy ? msg.price : msg.cost)).toFixed(2),
+            chg: (100 * msg.price_change / msg.current_profit).toFixed(2),
+          }),
           icon: 'https://image.eveonline.com/Type/'+ msg.type_id +'_64.png',
         })
       })

@@ -1,10 +1,49 @@
+select "typeID" from "invTypes" where "marketGroupID" in (select market_group_id from market_group_arrays where NOT id_list && Array[350001, 1954, 1849, 1659, 1396, 150, 2] order by name_list)
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
+
+select
+"typeName",
+a.*,
+order_frequencies.*
+from (select type_id, coalesce(max(sell_price_wavg) - max(buy_price_max), 0) as profit from station_order_stats group by type_id order by profit desc) a
+
+join "invTypes" on ("typeID" = type_id)
+join order_frequencies on (order_frequencies.type_id = a.type_id and order_frequencies.region_id = 10000002)
+join observed_history on (observed_history.type_id = a.type_id and observed_history.station_id = 60003760)
+join recent_observed_history on (recent_observed_history.type_id = a.type_id and recent_observed_history.station_id = 60003760)
+
+where a.type_id in (select "typeID" from type_metas where (("metaGroupID" = 4 or ("metaGroupID" = 1 and meta_level = max_meta)) and id_list && Array[9, 11]) OR id_list && Array[27])
+
+AND avg_orders > 10
+
+order by profit desc
+
+;
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
+
 select "typeName", s0.*
 from
 (
-select *, ((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) as profit_per_unit, (((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) * trade_units * (10 / greatest(10, daily_buy_isking, daily_sell_isking))) as profit_pot from station_order_stats join order_frequencies using (type_id, region_id) join observed_history using (type_id, station_id) join recent_observed_history using (type_id, station_id) where station_id = 60003760 and type_id in (select "typeID" from type_metas where (("metaGroupID" = 4 or ("metaGroupID" = 1 and meta_level = max_meta)) and id_list && Array[9, 11]) OR id_list && Array[27])
+  select *,
+  ((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) as profit_per_unit,
+  (((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) * trade_units * (10 / greatest(10, daily_buy_isking, daily_sell_isking))) as profit_pot
+
+  from station_order_stats
+  join order_frequencies using (type_id, region_id)
+  join observed_history using (type_id, station_id)
+  join recent_observed_history using (type_id, station_id)
+
+  where station_id = 60003760 and type_id in (select "typeID" from type_metas where (("metaGroupID" = 4 or ("metaGroupID" = 1 and meta_level = max_meta)) and id_list && Array[9, 11]) OR id_list && Array[27])
 ) s0
 join "invTypes" on ("typeID" = type_id)
 where ratio < 2 and buy_price_max < 10000000 and profit_pot > 1500000 order by profit_pot desc limit 50;
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
 
 create materialized view observed_history as
 

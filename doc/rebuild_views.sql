@@ -16,3 +16,12 @@ with max_metas as (
 )
 
 select "typeID", "metaGroupID", "typeName", "marketGroupID", "parentTypeID", "metaGroupName", parent_group_id, group_name, id_list, name_list, (select COALESCE("valueInt", "valueFloat") from "dgmTypeAttributes" where "attributeID" = 633 and "dgmTypeAttributes"."typeID" = "invTypes"."typeID" limit 1) as meta_level, max_meta from "invTypes" left join "invMetaTypes" using ("typeID") left join "invMetaGroups" using ("metaGroupID") join market_group_arrays on ("marketGroupID" = market_group_id) left join max_metas using ("parentTypeID") where published;
+
+create materialized view trade_hub_stats as (
+with
+cc as (select station_id, region_id, count(*) from market_order_changes group by station_id, region_id order by count desc limit 200),
+sc as (select station_id, count(*), sum(price * volume_remaining) from market_orders where NOT buy group by station_id order by count desc limit 200),
+bc as (select station_id, count(*), sum(price * volume_remaining) from market_orders where buy group by station_id order by count desc limit 200)
+
+select "stationName" station_name, cc.station_id, cc.region_id, sc.count sell_orders, sc.sum sell_order_isk, bc.count buy_orders, bc.sum buy_order_isk, cc.count order_changes from cc join sc using (station_id) join "staStations" on ("stationID" = cc.station_id) join bc using (station_id)
+);

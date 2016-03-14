@@ -130,6 +130,9 @@ lib.pollingLoop(function() {
   })
 })
 
+const eveRequestPool = {
+  maxSockets: 20,
+}
 function eveRequest(url) {
   return bluebird.try(function() {
     return eveThrottle.add(function() {
@@ -141,6 +144,8 @@ function eveRequest(url) {
 
       return bluebird.resolve(rp({
         uri: base_url + url,
+        forever: true,
+        pool: eveRequestPool,
         headers: {
           'User-Agent': process.env.CONTACT_STRING,
         },

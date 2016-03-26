@@ -508,11 +508,8 @@ function importSingleOrderType(type_id, region_id) {
             })
           }
         }).then(function() {
-          const maxBuyPrice = _.max(_.map(buy_orders.items, 'price')) || null
           const buyOrders = _.orderBy(
-            _.reject(buy_orders.items, (o) => {
-              return (o.price < (maxBuyPrice / 10)) || (o.minVolume > o.volume)
-            }),
+            _.reject(buy_orders.items, (o) => { return (o.minVolume > o.volume) }),
             ['price', 'issued'], ['desc', 'asc']
           )
           const buyOrderData = _.map(buyOrders, o => {
@@ -544,13 +541,11 @@ function importSingleOrderType(type_id, region_id) {
             type_id: type_id,
           }), function(last_stats) {
             var station_id = last_stats.station_id
-            // Ignore any buy prices less than 10% of the max buy price or where min volume is greater than volume itself
-            var buyOrders = stationOrders.buy[station_id] || []
+            const buyOrders = _.orderBy(
+              _.reject(stationOrders.buy[station_id] || [], (o) => { return (o.minVolume > o.volume) }),
+              ['price', 'issued'], ['desc', 'asc']
+            )
             const maxBuyPrice = _.max(_.map(buyOrders, 'price')) || null
-            buyOrders = _.reject(buyOrders, (o) => {
-              return (o.price < (maxBuyPrice / 10)) || (o.minVolume > o.volume)
-            })
-            buyOrders = _.orderBy(buyOrders, ['price', 'issued'], ['desc', 'asc'])
             const buyUnits = _.sum(_.map(buyOrders, 'volume'))
             const buyOrderData = _.map(buyOrders, o => { return [ o.price, o.volume ]})
 
@@ -627,7 +622,7 @@ function importSingleOrderType(type_id, region_id) {
             })
 
             return bluebird.all([
-              trx('market_order_stats_ts').insert(_.assign({
+              trx('market_order_stats_ts_'+lib.datePartitionedPostfix()).insert(_.assign({
                 type_id: type_id,
                 station_id: station_id,
                 region_id: region_id,

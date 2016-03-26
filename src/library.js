@@ -30,6 +30,9 @@ _.assign(exports, {
   rollbar: rollbar,
   neowCache: neowCache,
   buildEveClient: buildEveClient,
+  datePartitionedPostfix: function() {
+    return moment().format('[y]YYYY[m]MM')
+  },
   parseUTC: function(str) {
     return new Date(str + '+00:00')
   },

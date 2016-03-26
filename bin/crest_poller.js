@@ -26,6 +26,23 @@ const eveThrottle = new bluebirdThrottle({
 const base_url = process.env.CREST_API_BASE_URL
 const serverErrorDelay = 500
 
+function bidRangeToInt(range) {
+  switch (range) {
+    case 'station':
+      return -1
+      break;
+    case 'solarsystem':
+      return 0
+      break;
+    case 'region':
+      return 32767
+      break;
+    default:
+      return parseInt(range)
+      break;
+  }
+}
+
 const orderConcurrency = parseInt(process.env.ORDER_RATELIMIT || 10) / 10
 _.times(orderConcurrency, function(n) {
   lib.pollingLoop(function market_orders() {
@@ -320,22 +337,6 @@ function importSingleOrderType(type_id, region_id) {
           var issueDate = lib.parseUTC(o.issued)
 
           if (row === undefined) {
-            var range
-            switch (o.range) {
-              case 'station':
-                range = -1
-                break;
-              case 'solarsystem':
-                range = 0
-                break;
-              case 'region':
-                range = 32767
-                break;
-              default:
-                range = parseInt(o.range)
-                break;
-            }
-
             return bluebird.try(function() {
               return trx('market_orders').insert({
                 id: o.id,
@@ -348,7 +349,7 @@ function importSingleOrderType(type_id, region_id) {
                 buy: o.buy,
                 issue_date: issueDate,
                 duration: o.duration,
-                range: range,
+                range: bidRangeToInt(o.range),
                 type_id: o.type.id,
                 station_id: o.location.id,
                 region_id: trx('staStations').select('regionID').where({
@@ -358,8 +359,7 @@ function importSingleOrderType(type_id, region_id) {
             }).then(function() {
               incrementStats(o.location.id, 'new_' + buy_sell + '_orders')
               incrementStats(o.location.id, 'new_' + buy_sell + '_order_units', o.volume)
-
-              return trx.raw(sql('market_order_changes').insert({
+              return trx.raw(sql('market_order_changes_'+lib.datePartitionedPostfix()).insert({
                 order_id: o.id,
                 type_id: o.type.id,
                 station_id: o.location.id,
@@ -391,7 +391,7 @@ function importSingleOrderType(type_id, region_id) {
             }
 
             return bluebird.try(function() {
-              return trx.raw(sql('market_order_changes').insert({
+              return trx.raw(sql('market_order_changes_'+lib.datePartitionedPostfix()).insert({
                 order_id: o.id,
                 type_id: o.type.id,
                 station_id: o.location.id,
@@ -477,7 +477,7 @@ function importSingleOrderType(type_id, region_id) {
               }
 
               return bluebird.try(function() {
-                return trx.raw(sql('market_order_changes').insert({
+                return trx.raw(sql('market_order_changes_'+lib.datePartitionedPostfix()).insert({
                   order_id: row.id,
                   type_id: row.type_id,
                   station_id: row.station_id,
@@ -507,6 +507,28 @@ function importSingleOrderType(type_id, region_id) {
               ])
             })
           }
+        }).then(function() {
+          const maxBuyPrice = _.max(_.map(buy_orders.items, 'price')) || null
+          const buyOrders = _.orderBy(
+            _.reject(buy_orders.items, (o) => {
+              return (o.price < (maxBuyPrice / 10)) || (o.minVolume > o.volume)
+            }),
+            ['price', 'issued'], ['desc', 'asc']
+          )
+          const buyOrderData = _.map(buyOrders, o => {
+            return [ o.location.id, o.price, o.volume, bidRangeToInt(o.range) ]
+          })
+
+          const sellOrders = _.orderBy(sell_orders.items, ['price', 'issued'], ['asc', 'asc'])
+          const sellOrderData = _.map(sell_orders.items, o => { return [ o.location.id, o.price, o.volume ]})
+
+          return trx('market_order_snaps_'+lib.datePartitionedPostfix()).insert({
+            type_id: type_id,
+            region_id: region_id,
+            observed_at: now,
+            buy_order_data: JSON.stringify(buyOrderData),
+            sell_order_data: JSON.stringify(sellOrderData),
+          })
         }).then(function() {
           var stationOrders = {
             buy: _.groupBy(buy_orders.items, (o) => {
@@ -605,13 +627,12 @@ function importSingleOrderType(type_id, region_id) {
             })
 
             return bluebird.all([
-              trx('station_order_stats_ts').insert(_.assign({
+              trx('market_order_stats_ts').insert(_.assign({
                 type_id: type_id,
                 station_id: station_id,
                 region_id: region_id,
                 calculated_at: now,
                 last_updated_at: last_stats.updated_at || '2000-01-01 00:00:01 -8:00',
-                buy_order_data: JSON.stringify(buyOrderData),
                 buy_price_max: maxBuyPrice,
                 buy_price_wavg: buy_price_wavg,
                 buy_price_5pct: buy_price_5pct,
@@ -619,7 +640,6 @@ function importSingleOrderType(type_id, region_id) {
                 buy_units: buyUnits,
                 buy_orders: buyOrder_count,
                 sell_orders: sellOrder_count,
-                sell_order_data: JSON.stringify(sellOrderData),
                 sell_price_min: sell_price_min,
                 sell_price_wavg: sell_price_wavg,
                 sell_price_5pct: sell_price_5pct,

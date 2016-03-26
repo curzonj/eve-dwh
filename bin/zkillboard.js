@@ -38,7 +38,7 @@ lib.cronTask(300, function() {
     logfmt.log({ fn: 'zkillboard.js', at: 'results', count: data.length })
 
     return bluebird.map(data, kill => {
-      return sql('zkillboard_data').insert({
+      return sql('zkillboard_data_'+lib.datePartitionedPostfix()).insert({
         kill_id: kill.killID,
         system_id: kill.solarSystemID,
         kill_time: kill.killTime,

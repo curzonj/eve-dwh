@@ -22,6 +22,7 @@
     "webpack": "^1.12.14"
   },
   "dependencies": {
+    "axios": "latest",
     "compression": "latest",
     "handlebars-template-loader": "latest",
     "express-handlebars": "latest",

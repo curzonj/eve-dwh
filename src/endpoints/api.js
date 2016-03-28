@@ -28,7 +28,7 @@ router.post('/sql', function(req, res) {
 
 router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
   const columns = _.split(req.query.columns, ',')
-  columns.unshift('calculated_at')
+  columns.unshift(sql.raw('extract(epoch from calculated_at) AS unix_ts'))
 
   return sql('market_order_stats_ts').where({
     type_id: req.params.type_id,
@@ -38,15 +38,12 @@ router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
   .then(data => {
     res.json(_.map(data, row => {
       _.forEach(row, (v,k,o) => {
-        if (k !== 'calculated_at')
+        if (k !== 'calculated_at') {
           o[k] = parseFloat(v)
+        }
       })
 
       return row
-
-      return _.filter(row, (v,k,o) => {
-        return _.includes(columns, k)
-      })
     }))
   }).catch(next)
 })

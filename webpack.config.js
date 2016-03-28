@@ -1,7 +1,7 @@
 /* jshint strict: false */
 
 module.exports = {
-  entry:  './src/ui',
+  entry:  './src/ui/entry.js',
   output: {
     path:     require('path').resolve('./public'),
     filename: 'app.js',

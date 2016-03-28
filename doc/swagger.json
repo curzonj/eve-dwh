@@ -49,6 +49,15 @@
       "schema": {
         "type": "string"
       }
+    },
+    "genericArray": {
+      "description": "something",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
     }
   },
   "paths": {
@@ -67,6 +76,50 @@
         }
       }
     },
+    "/api/v1/types/{type_id}/market/stats": {
+      "get": {
+        "description": "fetch market stats",
+        "parameters": [
+          {
+            "name": "type_id",
+            "in": "path",
+            "description": "type_id",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "region_id",
+            "in": "query",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "columns",
+            "in": "query",
+            "description": "columns to return",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "csv"
+          }
+        ],
+        "responses": {
+          "default": { "$ref": "#/responses/Error" },
+          "200": { "$ref": "#/responses/genericArray" }
+        }
+      }
+    },
     "/api/sql": {
       "post": {
         "description": "Execute an SQL query",
@@ -79,15 +132,7 @@
         ],
         "responses": {
           "default": { "$ref": "#/responses/Error" },
-          "200": {
-            "description": "something",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
-          }
+          "200": { "$ref": "#/responses/genericArray" }
         }
       }
     }

@@ -22,12 +22,15 @@ const KnexSessionStore = new(require('connect-session-knex')(session))({
 const debug = require('../src/debug')
 const express_enforces_ssl = require('express-enforces-ssl');
 const passportSocketIo = require('passport.socketio')
+const compression = require('compression')
 
 lib.setupSignalHandlers()
 
 const app = express()
 const canonical_url = urlUtil.parse(process.env.CANONICAL_URL)
 const useSSL = (canonical_url.protocol === 'https:')
+
+app.use(compression())
 
 const exphbs  = require('express-handlebars');
 app.engine('hbs', exphbs({
@@ -177,7 +180,7 @@ swaggerTools.initializeMiddleware(swaggerDoc, function(middleware) {
 
   // Validate Swagger requests
   app.use(middleware.swaggerValidator({
-    validateResponse: true,
+//    validateResponse: true,
   }));
 
   app.use(function(req, res, next) {

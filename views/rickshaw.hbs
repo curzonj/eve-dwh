@@ -5,13 +5,20 @@
 }
 #chart {
         position: relative;
-        left: 40px;
+        left: 80px;
 }
 .rickshaw_graph .y_ticks {
         left: 0;
 }
-#y_axis {
+#price_axis {
         position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40px;
+}
+#vol_axis {
+        position: absolute;
+        left: 40px;
         top: 0;
         bottom: 0;
         width: 40px;
@@ -22,8 +29,9 @@
 </style>
 
 <div id="chart_container">
-  <div id="y_axis"></div>
+  <div id="price_axis"></div>
   <div id="chart"></div>
+  <div id="vol_axis"></div>
   <div id="slider"></div>
 </div>
 

@@ -17,16 +17,23 @@ global.rickshawPage = function() {
     params: {
       region_id: 10000002,
       station_id: 60003760,
-      columns: 'buy_price_max,sell_price_min',
+      columns: 'buy_price_max,sell_price_min,buy_units,sell_units',
     },
   }).then(response => {
-    const min = _.reduce(response.data, (result, row) => {
+    const price_min = _.reduce(response.data, (result, row) => {
       return Math.min(result, row.buy_price_max)
     }, Number.MAX_VALUE)
-    const max = _.reduce(response.data, (result, row) => {
+    const price_max = _.reduce(response.data, (result, row) => {
       return Math.max(result, row.sell_price_min)
     }, Number.MIN_VALUE)
-    const scale = d3.scale.linear().domain([min, max]).nice()
+    const price_scale = d3.scale.linear().domain([price_min, price_max]).nice()
+    const vol_min = _.reduce(response.data, (result, row) => {
+      return Math.min(result, row.buy_units, row.sell_units)
+    }, Number.MAX_VALUE)
+    const vol_max = _.reduce(response.data, (result, row) => {
+      return Math.max(result, row.buy_units, row.sell_units)
+    }, Number.MIN_VALUE)
+    const vol_scale = d3.scale.linear().domain([vol_min, vol_max]).nice()
 
     const palette = new Rickshaw.Color.Palette();
     const graph = new Rickshaw.Graph({
@@ -39,8 +46,8 @@ global.rickshawPage = function() {
       interpolation: 'step-after',
       series: [{
         name: 'buy_price_max',
-        color: palette.color(),
-        scale: scale,
+        color: 'lightblue',
+        scale: price_scale,
         data: _.map(response.data, r => {
           return {
             x: r.unix_ts,
@@ -49,12 +56,32 @@ global.rickshawPage = function() {
         }),
       }, {
         name: 'sell_price_min',
-        color: palette.color(),
-        scale: scale,
+        color: 'steelblue',
+        scale: price_scale,
         data: _.map(response.data, r => {
           return {
             x: r.unix_ts,
             y: r.sell_price_min,
+          }
+        }),
+      }, {
+        name: 'buy_units',
+        color: palette.color(),
+        scale: vol_scale,
+        data: _.map(response.data, r => {
+          return {
+            x: r.unix_ts,
+            y: r.buy_units,
+          }
+        }),
+      }, {
+        name: 'sell_units',
+        color: palette.color(),
+        scale: vol_scale,
+        data: _.map(response.data, r => {
+          return {
+            x: r.unix_ts,
+            y: r.sell_units,
           }
         }),
       }, ],
@@ -62,19 +89,29 @@ global.rickshawPage = function() {
     const x_axis = new Rickshaw.Graph.Axis.Time({
       graph: graph,
     })
-    var y_axis = new Rickshaw.Graph.Axis.Y.Scaled({
+    new Rickshaw.Graph.Axis.Y.Scaled({
       graph: graph,
       orientation: 'left',
-      scale: scale,
+      scale: price_scale,
       tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-      element: document.getElementById('y_axis'),
-    });
+      element: document.getElementById('price_axis'),
+    })
+    new Rickshaw.Graph.Axis.Y.Scaled({
+      graph: graph,
+      orientation: 'left',
+      scale: vol_scale,
+      tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+      element: document.getElementById('vol_axis'),
+    })
     var slider = new Rickshaw.Graph.RangeSlider.Preview({
       graph: graph,
       element: document.querySelector('#slider'),
     })
     new Rickshaw.Graph.HoverDetail({
       graph: graph,
+      formatter: function(series, x, y) {
+        return y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+      },
     })
 
     global.graph = graph

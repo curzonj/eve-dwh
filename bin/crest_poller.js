@@ -541,11 +541,14 @@ function importSingleOrderType(type_id, region_id) {
             type_id: type_id,
           }), function(last_stats) {
             var station_id = last_stats.station_id
+            const raw_buy_orders = stationOrders.buy[station_id] || []
+            const maxBuyPrice = _.max(_.map(raw_buy_orders, 'price')) || null
             const buyOrders = _.orderBy(
-              _.reject(stationOrders.buy[station_id] || [], (o) => { return (o.minVolume > o.volume) }),
+              _.reject(buy_orders.items, (o) => {
+                return (o.price < (maxBuyPrice / 100)) || (o.minVolume > o.volume)
+              }),
               ['price', 'issued'], ['desc', 'asc']
             )
-            const maxBuyPrice = _.max(_.map(buyOrders, 'price')) || null
             const buyUnits = _.sum(_.map(buyOrders, 'volume'))
             const buyOrderData = _.map(buyOrders, o => { return [ o.price, o.volume ]})
 

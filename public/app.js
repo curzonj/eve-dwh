@@ -41895,8 +41895,6 @@
 	    const palette = new Rickshaw.Color.Palette();
 	    const graph = new Rickshaw.Graph({
 	      element: document.getElementById('chart'),
-	      width: $(window).width() - 100,
-	      height: $(window).height() - 100,
 	      renderer: 'line',
 	      offset: 'lines',
 	      stack: false,
@@ -41974,9 +41972,12 @@
 	    global.graph = graph
 
 	    function renderGraph() {
+	      const width = $('#chart_container').width() - 80
+	      const height = Math.min(width*0.5, ($(window).height() - 70)*0.80)
+
 	      graph.configure({
-	        width: $('#chart_container').width() - 80,
-	        height: ($(window).height() - 100)*0.833,
+	        width: width,
+	        height: height,
 	      });
 	      graph.render();
 	    }

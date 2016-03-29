@@ -8,6 +8,8 @@ module.exports = function() {
   var _ = require('lodash')
   var handlebars = require('handlebars/dist/handlebars')
 
+  $('div#content').html(require('./orders.hbs')())
+
   document.title = 'Order Status'
 
   if (window.Notification === undefined) {

@@ -19,7 +19,8 @@
     "jshint": "latest",
     "jshint-stylish": "latest",
     "require-dir": "^0.1.0",
-    "webpack": "^1.12.14"
+    "webpack": "^1.12.14",
+    "rickshaw": "latest"
   },
   "dependencies": {
     "axios": "latest",

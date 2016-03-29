@@ -41856,7 +41856,7 @@
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
-	module.exports = function() {
+	module.exports = function(hash_querystring) {
 	  const $ = global.$
 	  const Rickshaw = __webpack_require__(78)
 	  const d3 = __webpack_require__(79)
@@ -41865,7 +41865,7 @@
 	  const bluebird = __webpack_require__(99)
 	  const querystring = __webpack_require__(101)
 
-	  const params = querystring.parse(window.location.hash.substr(1))
+	  const params = querystring.parse(hash_querystring)
 	  const type_id = params.type_id || 34
 
 	  $('div#content').html(__webpack_require__(104)())
@@ -41877,6 +41877,11 @@
 	      columns: 'buy_price_max,sell_price_min,buy_units,sell_units',
 	    },
 	  }).then(response => {
+	    if (_.isEmpty(response.data)) {
+	      $('h1.chart_loading').text('No data available for '+type_id)
+	      return
+	    }
+
 	    const price_min = _.reduce(response.data, (result, row) => {
 	      return Math.min(result, row.buy_price_max)
 	    }, Number.MAX_VALUE)
@@ -41892,9 +41897,12 @@
 	    }, Number.MIN_VALUE)
 	    const vol_scale = d3.scale.linear().domain([vol_min, vol_max]).nice()
 
+	    const size = calculateGraphSize()
 	    const palette = new Rickshaw.Color.Palette();
 	    const graph = new Rickshaw.Graph({
 	      element: document.getElementById('chart'),
+	      width: size.width,
+	      height: size.height,
 	      renderer: 'line',
 	      offset: 'lines',
 	      stack: false,
@@ -41971,13 +41979,20 @@
 
 	    global.graph = graph
 
-	    function renderGraph() {
+	    function calculateGraphSize() {
 	      const width = $('#chart_container').width() - 80
-	      const height = Math.min(width*0.5, ($(window).height() - 70)*0.80)
+	      return {
+	        width: width,
+	        height: Math.min(width*0.5, ($(window).height() - 70)*0.80),
+	      }
+	    }
+
+	    function renderGraph() {
+	      const size = calculateGraphSize()
 
 	      graph.configure({
-	        width: width,
-	        height: height,
+	        width: size.width,
+	        height: size.height,
 	      });
 	      graph.render();
 	    }

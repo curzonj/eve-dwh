@@ -32194,6 +32194,7 @@
 	        graph: graph,
 	        orientation: 'left',
 	        scale: vol_scale,
+	        grid: false,
 	        tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
 	        element: document.getElementById('vol_axis'),
 	      })
@@ -54920,7 +54921,7 @@
 
 	var Handlebars = __webpack_require__(53);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<div id=\"chart_container\">\n  <div id=\"price_axis\"></div>\n  <div id=\"chart\"></div>\n  <div id=\"vol_axis\"></div>\n  <div id=\"slider\"></div>\n</div>\n";
+	    return "<div id=\"chart_container\">\n  <div id=\"vol_axis\"></div>\n  <div id=\"price_axis\"></div>\n  <div id=\"chart\"></div>\n  <div id=\"slider\"></div>\n</div>\n";
 	},"useData":true});
 
 /***/ }

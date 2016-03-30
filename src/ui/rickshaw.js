@@ -166,6 +166,7 @@ module.exports = function(hash_querystring) {
         graph: graph,
         orientation: 'left',
         scale: vol_scale,
+        grid: false,
         tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
         element: document.getElementById('vol_axis'),
       })

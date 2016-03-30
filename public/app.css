@@ -24,13 +24,13 @@ span.loss { color: red }
 }
 #price_axis {
         position: absolute;
+        left: 40px;
         top: 0;
         bottom: 0;
         width: 40px;
 }
 #vol_axis {
         position: absolute;
-        left: 40px;
         top: 0;
         bottom: 0;
         width: 40px;

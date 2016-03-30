@@ -53,9 +53,14 @@ router.get('/v1/locations/autocomplete', (req, res, next) => {
 
 router.get('/v1/types/autocomplete', (req, res, next) => {
   const query = '%' + req.query.q.replace('%', '').replace('_','') + '%'
+  const int_id = parseInt(req.query.q)
 
   return sql('invTypes')
-    .where('typeName', 'ILIKE', query)
+    .where(function() {
+      var chain = this.where('typeName', 'ILIKE', query)
+      if (!isNaN(int_id) && int_id > 0)
+        chain.orWhere('typeID', int_id)
+    })
     .where({ published: true })
     .select('typeName', 'typeID')
     .then(rows => {

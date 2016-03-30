@@ -6,6 +6,7 @@ const lib = require('../library')
 const sql = require('../sql')
 const errors = require('../errors')
 const _ = require('lodash')
+const bluebird = require('bluebird')
 
 router.post('/sql', function(req, res) {
   var query
@@ -24,6 +25,30 @@ router.post('/sql', function(req, res) {
   query.then(function(result) {
     res.json(result)
   })
+})
+
+router.get('/v1/locations/autocomplete', (req, res, next) => {
+  const query = req.query.q.replace('%', '').replace('_','') + '%'
+  const markets = req.swagger.params.markets
+
+  return bluebird.all([
+    sql('mapRegions').
+      where('regionName', 'ILIKE', '%'+query).
+      select('regionName AS name', 'regionID'),
+    bluebird.try(() => {
+      var chain = sql('staStations').
+        where('stationName', 'ILIKE', query).
+        select('stationName AS name', 'stationID', 'regionID')
+
+      if (markets) {
+        chain = chain.whereIn('stationID', sql('station_order_stats').distinct('station_id'))
+      }
+
+      return chain
+    }),
+  ]).spread((regions, stations) => {
+    res.json(_.concat(regions, stations))
+  }).catch(next)
 })
 
 router.get('/v1/types/autocomplete', (req, res, next) => {

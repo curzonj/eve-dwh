@@ -76,9 +76,32 @@
         }
       }
     },
+    "/api/v1/locations/autocomplete": {
+      "get": {
+        "description": "search for a location name",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "the string to match on",
+            "required": true,
+            "type": "string"
+          }, {
+            "name": "markets",
+            "in": "query",
+            "description": "search only market locations",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "default": { "$ref": "#/responses/Error" }
+        }
+      }
+    },
     "/api/v1/types/autocomplete": {
       "get": {
-        "description": "fetch details about the type",
+        "description": "search for a type name",
         "parameters": [
           {
             "name": "q",

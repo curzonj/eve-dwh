@@ -12,14 +12,9 @@ module.exports = function(hash_querystring) {
 
   $('div#per-page-navbar').html(require('./rickshaw_nav.hbs')())
 
-  const bloodhound = new Bloodhound({
-    datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
-    queryTokenizer: Bloodhound.tokenizers.whitespace,
-    remote: {
-      url: '/api/v1/types/autocomplete?q=%QUERY',
-      wildcard: '%QUERY',
-    },
-  });
+  var type_id = 34
+  var region_id = 10000002
+  var station_id =  60003760
 
   $('#type-search input').typeahead({
     hint: true,
@@ -29,18 +24,51 @@ module.exports = function(hash_querystring) {
     name: 'states',
     limit: 15,
     display: 'typeName',
-    source: bloodhound,
+    source: new Bloodhound({
+      datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
+      queryTokenizer: Bloodhound.tokenizers.whitespace,
+      remote: {
+        url: '/api/v1/types/autocomplete?q=%QUERY',
+        wildcard: '%QUERY',
+      },
+    }),
   }).bind('typeahead:select', function(ev, suggestion) {
-    loadTypeGraph(suggestion.typeID)
+    type_id = suggestion.typeID
+    loadTypeGraph()
   })
 
-  const palette = new Rickshaw.Color.Palette();
+  $('#location-search input').typeahead({
+    hint: true,
+    highlight: true,
+    minLength: 3,
+  }, {
+    name: 'states',
+    limit: 15,
+    display: 'name',
+    source: new Bloodhound({
+      datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
+      queryTokenizer: Bloodhound.tokenizers.whitespace,
+      remote: {
+        url: '/api/v1/locations/autocomplete?q=%QUERY',
+        wildcard: '%QUERY',
+      },
+    }),
+  }).bind('typeahead:select', function(ev, s) {
+    console.log(s)
+
+    if (s.stationID !== undefined) {
+      station_id = s.stationID
+      region_id = s.regionID
+    }
+
+    loadTypeGraph()
+  })
 
   /*
   const params = querystring.parse(hash_querystring)
   const type_id = params.type_id || 34
   */
-  loadTypeGraph(34)
+  loadTypeGraph()
   $(window).on('resize', renderGraph)
 
   function calculateGraphSize() {
@@ -56,40 +84,26 @@ module.exports = function(hash_querystring) {
 
     if (typeof graph !== 'undefined') {
       const size = calculateGraphSize()
-      const sell_graph = $('#sell_chart').data('graph')
-      const buy_graph = $('#buy_chart').data('graph')
-
-      $('.chart_axis').css('top', size.height/8)
 
       graph.configure({
         width: size.width,
-        height: size.height*0.75,
-      })
-      sell_graph.configure({
-        width: size.width,
-        height: size.height/8,
-      })
-      buy_graph.configure({
-        width: size.width,
-        height: size.height/8,
+        height: size.height,
       })
 
       graph.render()
-      sell_graph.render()
-      buy_graph.render()
     }
   }
 
   const chart_html = require('./rickshaw.hbs')
-  function loadTypeGraph(type_id) {
+  function loadTypeGraph() {
     $('h1.chart_loading').remove()
     $('div#content').append('<h1 class="chart_loading">Loading the chart data...</h1>')
 
     axios.get('/api/v1/types/'+type_id+'/market/stats', {
       params: {
-        limit: '2 weeks',
-        region_id: 10000002,
-        station_id: 60003760,
+        limit: '4 weeks',
+        region_id: region_id,
+        station_id: station_id,
         columns: [
           'buy_price_max',
           'buy_units_vol_chg',
@@ -118,8 +132,10 @@ module.exports = function(hash_querystring) {
         return Math.max(result, row.sell_price_min)
       }, Number.MIN_VALUE)
 
-      const price_scale_type = (price_max / price_min) > 2 ? 'log' : 'linear'
-      const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max]).nice()
+      const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
+      const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max])
+      /*if (price_scale_type === 'log')
+        price_scale.nice() */
 
       const vol_min = _.reduce(response.data, (result, row) => {
         return Math.min(result, row.buy_units, row.sell_units)
@@ -128,14 +144,16 @@ module.exports = function(hash_querystring) {
         return Math.max(result, row.buy_units, row.sell_units)
       }, Number.MIN_VALUE)
 
-      const vol_scale_type = (vol_max / vol_min) > 2 ? 'log' : 'linear'
-      const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max]).nice()
+      const vol_scale_type = ((vol_max / vol_min) > 2 && vol_min > 0) ? 'log' : 'linear'
+      const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max])
+      /*if (vol_scale_type === 'log')
+        vol_scale.nice()*/
 
       const size = calculateGraphSize()
       const graph = new Rickshaw.Graph({
         element: document.getElementById('center_chart'),
         width: size.width,
-        height: size.height*0.75,
+        height: size.height,
         renderer: 'line',
         stack: false,
         interpolation: 'step-after',
@@ -183,67 +201,10 @@ module.exports = function(hash_querystring) {
       })
       graph.update = _.debounce(_.bind(graph.update, graph), 100)
 
-      const sell_units_data = _.map(response.data, r => {
-        return {
-          x: r.unix_ts,
-          y: r.sell_units_vol_chg + r.sell_units_disappeared,
-        }
-      })
-      const sell_graph = new Rickshaw.Graph({
-        element: document.getElementById('sell_chart'),
-        width: size.width,
-        height: size.height/8,
-        renderer: 'bar',
-        stack: false,
-        //interpolation: 'step-after',
-        series: [{
-          name: 'sell_units_sold',
-          color: 'red',
-          data: sell_units_data,
-        }, {
-          name: 'new_sell_order_units',
-          color: 'green',
-          data: _.map(response.data, r => {
-            return {
-              x: r.unix_ts,
-              y: r.new_sell_order_units,
-            }
-          }),
-        }, ],
-      })
-      const buy_graph = new Rickshaw.Graph({
-        element: document.getElementById('buy_chart'),
-        width: size.width,
-        height: size.height/8,
-        renderer: 'bar',
-        stack: false,
-        //interpolation: 'step-after',
-        series: [{
-          name: 'buy_units_sold',
-          color: 'red',
-          data: _.map(response.data, r => {
-            return {
-              x: r.unix_ts,
-              y: r.buy_units_vol_chg + r.buy_units_disappeared,
-            }
-          }),
-        }, {
-          name: 'new_buy_order_units',
-          color: 'green',
-          data: _.map(response.data, r => {
-            return {
-              x: r.unix_ts,
-              y: r.new_buy_order_units,
-            }
-          }),
-        }, ],
-      })
       const x_axis = new Rickshaw.Graph.Axis.Time({
         graph: graph,
       })
       $('#center_chart').css('left', '80px')
-      $('#sell_chart').css('left', '80px')
-      $('#buy_chart').css('left', '80px')
       $('#price_axis').css('left', '40px')
       new Rickshaw.Graph.Axis.Y.Scaled({
         graph: graph,
@@ -265,30 +226,13 @@ module.exports = function(hash_querystring) {
         element: document.querySelector('#slider'),
       })
       new Rickshaw.Graph.HoverDetail({
-        graph: sell_graph,
-      })
-      new Rickshaw.Graph.HoverDetail({
-        graph: buy_graph,
-      })
-      new Rickshaw.Graph.HoverDetail({
         graph: graph,
         formatter: function(series, x, y) {
           return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
         },
       })
 
-      graph.onUpdate(function() {
-        sell_graph.window.xMin = graph.window.xMin
-        sell_graph.window.xMax = graph.window.xMax
-        buy_graph.window.xMin = graph.window.xMin
-        buy_graph.window.xMax = graph.window.xMax
-        sell_graph.render()
-        buy_graph.render()
-      })
-
       $('#center_chart').data('graph', graph)
-      $('#sell_chart').data('graph', sell_graph)
-      $('#buy_chart').data('graph', buy_graph)
 
       $('h1.chart_loading').remove()
       renderGraph()

@@ -9,6 +9,7 @@ module.exports = function() {
   var handlebars = require('handlebars/dist/handlebars')
 
   $('div#content').html(require('./orders.hbs')())
+  $('div#per-page-navbar').html('')
 
   document.title = 'Order Status'
 
@@ -97,6 +98,8 @@ module.exports = function() {
   socket.on('order_status', function(orders) {
     _.forEach(orders, (msg) => {
       if (announceOrderOutBid(msg)) {
+        return // temp disable notifications because I want to change them
+
         var system_name = msg.station_name.split(' ')[0]
         Notification.requestPermission(function() {
           var term = msg.buy ? 'Buy' : 'Sell'

@@ -12,8 +12,4 @@ router.get('/', function(req, res) {
   }
 })
 
-router.get('/stats', (req, res) => {
-  res.render('rickshaw')
-})
-
 module.exports = router

@@ -26,26 +26,38 @@ router.post('/sql', function(req, res) {
   })
 })
 
+router.get('/v1/types/autocomplete', (req, res, next) => {
+  const query = '%' + req.query.q.replace('%', '').replace('_','') + '%'
+
+  return sql('invTypes')
+    .where('typeName', 'ILIKE', query)
+    .where({ published: true })
+    .select('typeName', 'typeID')
+    .then(rows => {
+      res.json(rows)
+    }).catch(next)
+})
+
 router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
   const columns = _.split(req.query.columns, ',')
   columns.unshift(sql.raw('extract(epoch from calculated_at) AS unix_ts'))
 
   return sql('market_order_stats_ts').where({
-    type_id: req.params.type_id,
-    region_id: req.query.region_id,
-    station_id: req.query.station_id,
-  }).select(columns)
-  .then(data => {
-    res.json(_.map(data, row => {
-      _.forEach(row, (v,k,o) => {
-        if (k !== 'calculated_at') {
-          o[k] = parseFloat(v)
-        }
-      })
+      type_id: req.params.type_id,
+      region_id: req.query.region_id,
+      station_id: req.query.station_id,
+    }).select(columns)
+    .then(data => {
+      res.json(_.map(data, row => {
+        _.forEach(row, (v, k, o) => {
+          if (k !== 'calculated_at') {
+            o[k] = parseFloat(v)
+          }
+        })
 
-      return row
-    }))
-  }).catch(next)
+        return row
+      }))
+    }).catch(next)
 })
 
 module.exports = router

@@ -1,0 +1,22 @@
+{
+  "name": "eve-crest-dwh",
+  "description": "",
+  "main": "",
+  "authors": [
+    "Jordan Curzon <curzonj@gmail.com>"
+  ],
+  "license": "MIT",
+  "moduleType": [],
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "typeahead.js": "^0.11.1"
+  }
+}

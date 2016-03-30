@@ -76,6 +76,41 @@
         }
       }
     },
+    "/api/v1/types/autocomplete": {
+      "get": {
+        "description": "fetch details about the type",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "the string to match on",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": { "$ref": "#/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/types/{type_id}/details": {
+      "get": {
+        "description": "fetch details about the type",
+        "parameters": [
+          {
+            "name": "type_id",
+            "in": "path",
+            "description": "type_id",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "default": { "$ref": "#/responses/Error" }
+        }
+      }
+    },
     "/api/v1/types/{type_id}/market/stats": {
       "get": {
         "description": "fetch market stats",
@@ -112,22 +147,6 @@
               "type": "string"
             },
             "collectionFormat": "csv"
-          }
-        ],
-        "responses": {
-          "default": { "$ref": "#/responses/Error" },
-          "200": { "$ref": "#/responses/genericArray" }
-        }
-      }
-    },
-    "/api/sql": {
-      "post": {
-        "description": "Execute an SQL query",
-        "parameters": [
-          {
-            "name": "query",
-            "in": "query",
-            "type": "string"
           }
         ],
         "responses": {

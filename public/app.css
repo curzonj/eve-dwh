@@ -17,19 +17,11 @@ span.loss { color: red }
 }
 #chart {
         position: relative;
-        left: 80px;
 }
 .rickshaw_graph .y_ticks {
         left: 0;
 }
-#price_axis {
-        position: absolute;
-        left: 40px;
-        top: 0;
-        bottom: 0;
-        width: 40px;
-}
-#vol_axis {
+.chart_axis {
         position: absolute;
         top: 0;
         bottom: 0;

@@ -46,7 +46,8 @@ router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
       type_id: req.params.type_id,
       region_id: req.query.region_id,
       station_id: req.query.station_id,
-    }).select(columns)
+    }).whereRaw('calculated_at > current_timestamp - cast(? as interval)', [req.query.limit])
+    .select(columns)
     .then(data => {
       res.json(_.map(data, row => {
         _.forEach(row, (v, k, o) => {

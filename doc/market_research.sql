@@ -40,7 +40,7 @@ select
 "typeName",
 a.*,
 order_frequencies.*
-from (select type_id, coalesce(max(sell_price_wavg) - max(buy_price_max), 0) as profit from station_order_stats group by type_id order by profit desc) a
+from (select type_id, coalesce(max(sell_price_min) - max(buy_price_max), 0) as profit from station_order_stats group by type_id order by profit desc) a
 
 join "invTypes" on ("typeID" = type_id)
 join order_frequencies on (order_frequencies.type_id = a.type_id and order_frequencies.region_id = 10000002)

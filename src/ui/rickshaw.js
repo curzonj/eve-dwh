@@ -34,6 +34,8 @@ module.exports = function(hash_querystring) {
     loadTypeGraph(suggestion.typeID)
   })
 
+  const palette = new Rickshaw.Color.Palette();
+
   /*
   const params = querystring.parse(hash_querystring)
   const type_id = params.type_id || 34
@@ -50,16 +52,31 @@ module.exports = function(hash_querystring) {
   }
 
   function renderGraph() {
-    const graph = $('#chart').data('graph')
+    const graph = $('#center_chart').data('graph')
 
     if (typeof graph !== 'undefined') {
       const size = calculateGraphSize()
+      const sell_graph = $('#sell_chart').data('graph')
+      const buy_graph = $('#buy_chart').data('graph')
+
+      $('.chart_axis').css('top', size.height/8)
 
       graph.configure({
         width: size.width,
-        height: size.height,
-      });
-      graph.render();
+        height: size.height*0.75,
+      })
+      sell_graph.configure({
+        width: size.width,
+        height: size.height/8,
+      })
+      buy_graph.configure({
+        width: size.width,
+        height: size.height/8,
+      })
+
+      graph.render()
+      sell_graph.render()
+      buy_graph.render()
     }
   }
 
@@ -70,9 +87,21 @@ module.exports = function(hash_querystring) {
 
     axios.get('/api/v1/types/'+type_id+'/market/stats', {
       params: {
+        limit: '2 weeks',
         region_id: 10000002,
         station_id: 60003760,
-        columns: 'buy_price_max,sell_price_min,buy_units,sell_units',
+        columns: [
+          'buy_price_max',
+          'buy_units_vol_chg',
+          'buy_units_disappeared',
+          'buy_units',
+          'new_buy_order_units',
+          'sell_price_min',
+          'sell_units',
+          'sell_units_vol_chg',
+          'sell_units_disappeared',
+          'new_sell_order_units',
+        ].join(),
       },
     }).then(response => {
       if (_.isEmpty(response.data)) {
@@ -103,16 +132,34 @@ module.exports = function(hash_querystring) {
       const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max]).nice()
 
       const size = calculateGraphSize()
-      const palette = new Rickshaw.Color.Palette();
       const graph = new Rickshaw.Graph({
-        element: document.getElementById('chart'),
+        element: document.getElementById('center_chart'),
         width: size.width,
-        height: size.height,
+        height: size.height*0.75,
         renderer: 'line',
-        offset: 'lines',
         stack: false,
         interpolation: 'step-after',
         series: [{
+          name: 'buy_units',
+          color: 'pink',
+          scale: vol_scale,
+          data: _.map(response.data, r => {
+            return {
+              x: r.unix_ts,
+              y: r.buy_units,
+            }
+          }),
+        }, {
+          name: 'sell_units',
+          color: 'orange',
+          scale: vol_scale,
+          data: _.map(response.data, r => {
+            return {
+              x: r.unix_ts,
+              y: r.sell_units,
+            }
+          }),
+        }, {
           name: 'buy_price_max',
           color: 'lightblue',
           scale: price_scale,
@@ -132,24 +179,61 @@ module.exports = function(hash_querystring) {
               y: r.sell_price_min,
             }
           }),
+        }, ],
+      })
+      graph.update = _.debounce(_.bind(graph.update, graph), 100)
+
+      const sell_units_data = _.map(response.data, r => {
+        return {
+          x: r.unix_ts,
+          y: r.sell_units_vol_chg + r.sell_units_disappeared,
+        }
+      })
+      const sell_graph = new Rickshaw.Graph({
+        element: document.getElementById('sell_chart'),
+        width: size.width,
+        height: size.height/8,
+        renderer: 'bar',
+        stack: false,
+        //interpolation: 'step-after',
+        series: [{
+          name: 'sell_units_sold',
+          color: 'red',
+          data: sell_units_data,
         }, {
-          name: 'buy_units',
-          color: palette.color(),
-          scale: vol_scale,
+          name: 'new_sell_order_units',
+          color: 'green',
           data: _.map(response.data, r => {
             return {
               x: r.unix_ts,
-              y: r.buy_units,
+              y: r.new_sell_order_units,
+            }
+          }),
+        }, ],
+      })
+      const buy_graph = new Rickshaw.Graph({
+        element: document.getElementById('buy_chart'),
+        width: size.width,
+        height: size.height/8,
+        renderer: 'bar',
+        stack: false,
+        //interpolation: 'step-after',
+        series: [{
+          name: 'buy_units_sold',
+          color: 'red',
+          data: _.map(response.data, r => {
+            return {
+              x: r.unix_ts,
+              y: r.buy_units_vol_chg + r.buy_units_disappeared,
             }
           }),
         }, {
-          name: 'sell_units',
-          color: palette.color(),
-          scale: vol_scale,
+          name: 'new_buy_order_units',
+          color: 'green',
           data: _.map(response.data, r => {
             return {
               x: r.unix_ts,
-              y: r.sell_units,
+              y: r.new_buy_order_units,
             }
           }),
         }, ],
@@ -157,6 +241,10 @@ module.exports = function(hash_querystring) {
       const x_axis = new Rickshaw.Graph.Axis.Time({
         graph: graph,
       })
+      $('#center_chart').css('left', '80px')
+      $('#sell_chart').css('left', '80px')
+      $('#buy_chart').css('left', '80px')
+      $('#price_axis').css('left', '40px')
       new Rickshaw.Graph.Axis.Y.Scaled({
         graph: graph,
         orientation: 'left',
@@ -177,13 +265,30 @@ module.exports = function(hash_querystring) {
         element: document.querySelector('#slider'),
       })
       new Rickshaw.Graph.HoverDetail({
+        graph: sell_graph,
+      })
+      new Rickshaw.Graph.HoverDetail({
+        graph: buy_graph,
+      })
+      new Rickshaw.Graph.HoverDetail({
         graph: graph,
         formatter: function(series, x, y) {
           return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
         },
       })
 
-      $('#chart').data('graph', graph)
+      graph.onUpdate(function() {
+        sell_graph.window.xMin = graph.window.xMin
+        sell_graph.window.xMax = graph.window.xMax
+        buy_graph.window.xMin = graph.window.xMin
+        buy_graph.window.xMax = graph.window.xMax
+        sell_graph.render()
+        buy_graph.render()
+      })
+
+      $('#center_chart').data('graph', graph)
+      $('#sell_chart').data('graph', sell_graph)
+      $('#buy_chart').data('graph', buy_graph)
 
       $('h1.chart_loading').remove()
       renderGraph()

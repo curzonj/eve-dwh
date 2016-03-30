@@ -32053,15 +32053,12 @@
 	    hint: true,
 	    highlight: true,
 	    minLength: 3,
-	  },
-	  {
+	  }, {
 	    name: 'states',
 	    limit: 15,
 	    display: 'typeName',
 	    source: bloodhound,
-	  })
-
-	  $('#type-search input').bind('typeahead:select', function(ev, suggestion) {
+	  }).bind('typeahead:select', function(ev, suggestion) {
 	    loadTypeGraph(suggestion.typeID)
 	  })
 
@@ -32119,14 +32116,19 @@
 	      const price_max = _.reduce(response.data, (result, row) => {
 	        return Math.max(result, row.sell_price_min)
 	      }, Number.MIN_VALUE)
-	      const price_scale = d3.scale.linear().domain([price_min, price_max]).nice()
+
+	      const price_scale_type = (price_max / price_min) > 2 ? 'log' : 'linear'
+	      const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max]).nice()
+
 	      const vol_min = _.reduce(response.data, (result, row) => {
 	        return Math.min(result, row.buy_units, row.sell_units)
 	      }, Number.MAX_VALUE)
 	      const vol_max = _.reduce(response.data, (result, row) => {
 	        return Math.max(result, row.buy_units, row.sell_units)
 	      }, Number.MIN_VALUE)
-	      const vol_scale = d3.scale.linear().domain([vol_min, vol_max]).nice()
+
+	      const vol_scale_type = (vol_max / vol_min) > 2 ? 'log' : 'linear'
+	      const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max]).nice()
 
 	      const size = calculateGraphSize()
 	      const palette = new Rickshaw.Color.Palette();
@@ -32205,7 +32207,7 @@
 	      new Rickshaw.Graph.HoverDetail({
 	        graph: graph,
 	        formatter: function(series, x, y) {
-	          return y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+	          return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
 	        },
 	      })
 
@@ -54912,7 +54914,7 @@
 
 	var Handlebars = __webpack_require__(53);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<form id=\"type-search\" class=\"navbar-form\" role=\"search\">\n  <div class=\"form-group\">\n    <div class=\"input-group\">\n      <span class=\"input-group-addon\" id=\"basic-addon1\">Name Search</span>\n      <input type=\"text\" class=\"form-control\" placeholder=\"Tritanium\" aria-describedby=\"basic-addon1\" size=\"50\">\n    </div>\n  </div>\n</form>\n";
+	    return "<form id=\"type-search\" class=\"navbar-form navbar-left\" role=\"type-search\">\n  <div class=\"form-group\">\n    <input type=\"text\" class=\"form-control\" placeholder=\"Item Name eg. Tritanium\" size=\"50\">\n  </div>\n</form>\n\n<form id=\"location-search\" class=\"navbar-form navbar-left\" role=\"location-search\">\n  <div class=\"form-group\">\n    <input type=\"text\" class=\"form-control\" placeholder=\"Station eg. Jita\" size=\"20\">\n  </div>\n</form>\n";
 	},"useData":true});
 
 /***/ },

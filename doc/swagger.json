@@ -159,6 +159,44 @@
             "required": true,
             "type": "integer",
             "format": "int64"
+          }
+        ],
+        "responses": {
+          "default": { "$ref": "#/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/types/{type_id}/market/buy_sell_series": {
+      "get": {
+        "description": "fetch market buy_sell_series",
+        "parameters": [
+          {
+            "name": "type_id",
+            "in": "path",
+            "description": "type_id",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "region_id",
+            "in": "query",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "type": "string"
           },
           {
             "name": "columns",

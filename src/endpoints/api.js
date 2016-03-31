@@ -69,6 +69,16 @@ router.get('/v1/types/autocomplete', (req, res, next) => {
 })
 
 router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
+  return sql('agg_market_type_stats').where({
+      type_id: req.params.type_id,
+      region_id: req.query.region_id,
+      station_id: req.query.station_id,
+    }).first().then(data => {
+      res.json(data)
+    }).catch(next)
+})
+
+router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
   const columns = _.split(req.query.columns, ',')
   columns.unshift(sql.raw('extract(epoch from calculated_at) AS unix_ts'))
 

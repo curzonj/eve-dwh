@@ -10,6 +10,8 @@ module.exports = function(hash_querystring) {
   const querystring = require('querystring')
   const Bloodhound = require('typeahead.js')
 
+  const chart_html = require('./rickshaw.hbs')
+
   $('div#per-page-navbar').html(require('./rickshaw_nav.hbs')())
 
   var type_id = 34
@@ -94,12 +96,20 @@ module.exports = function(hash_querystring) {
     }
   }
 
-  const chart_html = require('./rickshaw.hbs')
   function loadTypeGraph() {
-    $('h1.chart_loading').remove()
+    $('div#content').html(chart_html())
     $('div#content').append('<h1 class="chart_loading">Loading the chart data...</h1>')
 
     axios.get('/api/v1/types/'+type_id+'/market/stats', {
+      params: {
+        region_id: region_id,
+        station_id: station_id,
+      },
+    }).then(response => {
+      $('div#content').append('<pre class="debug_json">'+JSON.stringify(response.data, null, 2)+'</pre>')
+    })
+
+    axios.get('/api/v1/types/'+type_id+'/market/buy_sell_series', {
       params: {
         limit: '4 weeks',
         region_id: region_id,
@@ -122,8 +132,6 @@ module.exports = function(hash_querystring) {
         $('h1.chart_loading').text('No data available for '+type_id)
         return
       }
-
-      $('div#content').html(chart_html())
 
       const price_min = _.reduce(response.data, (result, row) => {
         return Math.min(result, row.buy_price_max)

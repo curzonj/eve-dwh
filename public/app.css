@@ -11,6 +11,10 @@ span.loss { color: red }
  *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
 */
 
+.debug_json {
+    margin-top: 15px;
+}
+
 #chart_container {
         position: relative;
         font-family: Arial, Helvetica, sans-serif;

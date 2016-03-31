@@ -32038,7 +32038,9 @@
 	  const querystring = __webpack_require__(101)
 	  const Bloodhound = __webpack_require__(104)
 
-	  $('div#per-page-navbar').html(__webpack_require__(105)())
+	  const chart_html = __webpack_require__(105)
+
+	  $('div#per-page-navbar').html(__webpack_require__(106)())
 
 	  var type_id = 34
 	  var region_id = 10000002
@@ -32122,12 +32124,20 @@
 	    }
 	  }
 
-	  const chart_html = __webpack_require__(106)
 	  function loadTypeGraph() {
-	    $('h1.chart_loading').remove()
+	    $('div#content').html(chart_html())
 	    $('div#content').append('<h1 class="chart_loading">Loading the chart data...</h1>')
 
 	    axios.get('/api/v1/types/'+type_id+'/market/stats', {
+	      params: {
+	        region_id: region_id,
+	        station_id: station_id,
+	      },
+	    }).then(response => {
+	      $('div#content').append('<pre class="debug_json">'+JSON.stringify(response.data, null, 2)+'</pre>')
+	    })
+
+	    axios.get('/api/v1/types/'+type_id+'/market/buy_sell_series', {
 	      params: {
 	        limit: '4 weeks',
 	        region_id: region_id,
@@ -32150,8 +32160,6 @@
 	        $('h1.chart_loading').text('No data available for '+type_id)
 	        return
 	      }
-
-	      $('div#content').html(chart_html())
 
 	      const price_min = _.reduce(response.data, (result, row) => {
 	        return Math.min(result, row.buy_price_max)
@@ -54971,7 +54979,7 @@
 
 	var Handlebars = __webpack_require__(53);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<form id=\"type-search\" class=\"navbar-form navbar-left\" role=\"type-search\">\n  <div class=\"form-group\">\n    <input type=\"text\" class=\"form-control\" placeholder=\"Item Name eg. Tritanium\" size=\"50\">\n  </div>\n</form>\n\n<form id=\"location-search\" class=\"navbar-form navbar-left\" role=\"location-search\">\n  <div class=\"form-group\">\n    <input type=\"text\" class=\"form-control\" placeholder=\"Station eg. Jita\" size=\"20\">\n  </div>\n</form>\n";
+	    return "<div id=\"chart_container\">\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n  <div id=\"center_chart\"></div>\n  <div id=\"slider\"></div>\n</div>\n";
 	},"useData":true});
 
 /***/ },
@@ -54980,7 +54988,7 @@
 
 	var Handlebars = __webpack_require__(53);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<div id=\"chart_container\">\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n  <div id=\"center_chart\"></div>\n  <div id=\"slider\"></div>\n</div>\n";
+	    return "<form id=\"type-search\" class=\"navbar-form navbar-left\" role=\"type-search\">\n  <div class=\"form-group\">\n    <input type=\"text\" class=\"form-control\" placeholder=\"Item Name eg. Tritanium\" size=\"50\">\n  </div>\n</form>\n\n<form id=\"location-search\" class=\"navbar-form navbar-left\" role=\"location-search\">\n  <div class=\"form-group\">\n    <input type=\"text\" class=\"form-control\" placeholder=\"Station eg. Jita\" size=\"20\">\n  </div>\n</form>\n";
 	},"useData":true});
 
 /***/ }

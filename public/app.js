@@ -176,8 +176,6 @@
 	  socket.on('order_status', function(orders) {
 	    _.forEach(orders, (msg) => {
 	      if (announceOrderOutBid(msg)) {
-	        return // temp disable notifications because I want to change them
-
 	        var system_name = msg.station_name.split(' ')[0]
 	        Notification.requestPermission(function() {
 	          var term = msg.buy ? 'Buy' : 'Sell'

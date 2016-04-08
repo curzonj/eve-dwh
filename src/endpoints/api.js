@@ -88,7 +88,7 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
     }).whereRaw('date_of >= current_timestamp - cast(? as interval)', [req.query.limit])
     .select(columns).select('stats_timestamp')
     .then(data => {
-      res.json(_.flatten(_.map(data, row => {
+      res.json(_.sortBy(_.flatten(_.map(data, row => {
         return _.map(row.stats_timestamp, (value, index, col) => {
           var fake_row = { unix_ts: value }
           _.forEach(columns, name => {
@@ -96,7 +96,7 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
           })
           return fake_row
         })
-      })))
+      })), 'unix_ts'))
     }).catch(next)
 })
 

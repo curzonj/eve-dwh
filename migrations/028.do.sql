@@ -46,10 +46,14 @@ create table market_daily_stats (
 );
 
 CREATE TABLE market_daily_stats_y2016m04 (
-    CHECK ( date_of < DATE '2016-05-01' )
+    CHECK ( date_of >= DATE '2016-04-01' AND date_of < DATE '2016-05-01' )
 ) INHERITS (market_daily_stats);
-
 alter table market_daily_stats_y2016m04 add primary key (type_id, region_id, station_id, date_of);
+
+CREATE TABLE market_daily_stats_y2016m03 (
+    CHECK ( date_of < DATE '2016-04-01' )
+) INHERITS (market_daily_stats);
+alter table market_daily_stats_y2016m03 add primary key (type_id, region_id, station_id, date_of);
 
 
 -- drop table historical_orders;

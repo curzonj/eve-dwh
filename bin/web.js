@@ -202,7 +202,7 @@ swaggerTools.initializeMiddleware(swaggerDoc, function(middleware) {
 
       debug('http:response', {
         request_id: req.id,
-        response_body: val.replace(/\n/g, ' '),
+        response_body: (val || 'undefined').replace(/\n/g, ' '),
       })
 
       res.end(data, encoding)

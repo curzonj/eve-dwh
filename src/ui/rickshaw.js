@@ -189,22 +189,24 @@ module.exports = function(hash_querystring) {
           name: 'buy_price_max',
           color: 'lightblue',
           scale: price_scale,
-          data: _.map(response.data, r => {
-            return {
-              x: r.unix_ts,
-              y: r.buy_price_max,
-            }
-          }),
+          data: _.compact(_.map(response.data, r => {
+            if (_.isNumber(r.buy_price_max))
+              return {
+                x: r.unix_ts,
+                y: r.buy_price_max,
+              }
+          })),
         }, {
           name: 'sell_price_min',
           color: 'steelblue',
           scale: price_scale,
-          data: _.map(response.data, r => {
-            return {
-              x: r.unix_ts,
-              y: r.sell_price_min,
-            }
-          }),
+          data: _.compact(_.map(response.data, r => {
+            if (_.isNumber(r.sell_price_min))
+              return {
+                x: r.unix_ts,
+                y: r.sell_price_min,
+              }
+          })),
         }, ],
       })
       graph.update = _.debounce(_.bind(graph.update, graph), 30, { maxWait: 300 })

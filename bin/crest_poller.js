@@ -453,25 +453,6 @@ function importSingleOrderType(type_id, region_id) {
             })
           }
         }).then(function() {
-          const buyOrders = _.orderBy(
-            _.reject(buy_orders.items, (o) => { return (o.minVolume > o.volume) }),
-            ['price', 'issued'], ['desc', 'asc']
-          )
-          const buyOrderData = _.map(buyOrders, o => {
-            return [ o.location.id, o.price, o.volume, bidRangeToInt(o.range) ]
-          })
-
-          const sellOrders = _.orderBy(sell_orders.items, ['price', 'issued'], ['asc', 'asc'])
-          const sellOrderData = _.map(sell_orders.items, o => { return [ o.location.id, o.price, o.volume ]})
-
-          return trx('market_order_snaps_'+lib.datePartitionedPostfix()).insert({
-            type_id: type_id,
-            region_id: region_id,
-            observed_at: now,
-            buy_order_data: JSON.stringify(buyOrderData),
-            sell_order_data: JSON.stringify(sellOrderData),
-          })
-        }).then(function() {
           var stationOrders = {
             buy: _.groupBy(buy_orders.items, (o) => {
               return o.location.id

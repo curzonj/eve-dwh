@@ -610,7 +610,11 @@ function importSingleOrderType(type_id, region_id) {
                 sell_price_median: sell_price_median,
                 sell_units: sellUnits,
               }),
-            ])
+            ]).catch(e => {
+              console.log(e)
+              process.exit(1)
+              throw e
+            })
           })
         })
       }).then(function() {

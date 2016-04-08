@@ -1,0 +1,31 @@
+alter table market_daily_stats
+  add column day_buy_order_price_changes integer not null default 0,
+  add column day_sell_order_price_changes integer not null default 0,
+  add column day_buy_price_min_tx numeric(16,2),
+  add column day_sell_price_min_tx numeric(16,2),
+  add column day_buy_price_max_tx numeric(16,2),
+  add column day_sell_price_max_tx numeric(16,2),
+  add column day_buy_price_wavg_tx numeric(16,2),
+  add column day_sell_price_wavg_tx numeric(16,2),
+  add column day_new_buy_orders integer not null default 0,
+  add column day_new_sell_orders integer not null default 0,
+  add column day_buy_orders_tx integer not null default 0,
+  add column day_sell_orders_tx integer not null default 0,
+  add column day_buy_units_tx bigint not null default 0,
+  add column day_sell_units_tx bigint not null default 0;
+
+update market_daily_stats s2 set
+  day_buy_order_price_changes = (select sum(unnest) from (select unnest(buy_orders_price_chg) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_sell_order_price_changes = (select sum(unnest) from (select unnest(sell_orders_price_chg) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_buy_price_min_tx = (select min(unnest) from (select unnest(buy_price_min_sold) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_sell_price_min_tx = (select min(unnest) from (select unnest(sell_price_min_sold) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_buy_price_max_tx = (select max(unnest) from (select unnest(buy_price_max_sold) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_sell_price_max_tx = (select max(unnest) from (select unnest(sell_price_max_sold) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_buy_price_wavg_tx = (select sum(n1*(n2+n3)) / sum(n2+n3) from (select unnest(buy_price_wavg_sold) n1, unnest(buy_units_vol_chg) n2, unnest(buy_units_disappeared) n3 from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_sell_price_wavg_tx = (select sum(n1*(n2+n3)) / sum(n2+n3) from (select unnest(sell_price_wavg_sold) n1, unnest(sell_units_vol_chg) n2, unnest(sell_units_disappeared) n3 from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_new_buy_orders = (select sum(unnest) from (select unnest(new_buy_orders) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_new_sell_orders = (select sum(unnest) from (select unnest(new_sell_orders) from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_buy_orders_tx = (select sum(n1+n2) from (select unnest(buy_orders_vol_chg) n1, unnest(buy_orders_disappeared) n2 from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_sell_orders_tx = (select sum(n1+n2) from (select unnest(sell_orders_vol_chg) n1, unnest(sell_orders_disappeared) n2 from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_buy_units_tx = (select sum(n1+n2) from (select unnest(buy_units_vol_chg) n1, unnest(buy_units_disappeared) n2 from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a),
+  day_sell_units_tx = (select sum(n1+n2) from (select unnest(sell_units_vol_chg) n1, unnest(sell_units_disappeared) n2 from market_daily_stats s1 where s1.date_of = s2.date_of and s1.type_id = s2.type_id and s1.region_id = s2.region_id and s1.station_id = s2.station_id) a);

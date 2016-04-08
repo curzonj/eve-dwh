@@ -18,6 +18,7 @@ const stats = require('../src/metrics').stats
 const _ = require('lodash')
 const fs = require('fs')
 const path = require('path')
+const errors = require('../src/errors')
 
 lib.setupSignalHandlers()
 
@@ -462,11 +463,13 @@ function importSingleOrderType(type_id, region_id) {
             }),
           }
 
-          return bluebird.each(trx('station_order_stats').where({
-            region_id: region_id,
-            type_id: type_id,
-          }), function(last_stats) {
-            var station_id = last_stats.station_id
+
+          return bluebird.each(bluebird.try(() => {
+            return trx.raw('select station_id, station_id IN (select distinct station_id from station_order_stats) AS existing from ((select distinct station_id, region_id from station_order_stats) UNION (select station_id, region_id from trade_hub_stats order by buy_orders desc limit 15)) a where region_id = :region_id', {
+              region_id: region_id,
+            }).then(result => result.rows)
+          }), function(result) {
+            const station_id = result.station_id
             const raw_buy_orders = stationOrders.buy[station_id] || []
             const maxBuyPrice = _.max(_.map(raw_buy_orders, 'price')) || null
             const buyOrders = _.orderBy(
@@ -572,30 +575,49 @@ function importSingleOrderType(type_id, region_id) {
                 sell_units: sellUnits,
               }, local_change_stats)),
               // Provide the region_id so that the request can use the index
-              trx('station_order_stats').where({
-                type_id: type_id,
-                station_id: station_id,
-                region_id: region_id,
-              }).update({
-                updated_at: sql.raw('current_timestamp'),
-                buy_price_max: maxBuyPrice,
-                buy_price_wavg: buy_price_wavg,
-                buy_price_5pct: buy_price_5pct,
-                buy_price_median: buy_price_median,
-                buy_units: buyUnits,
-                buy_orders: buyOrder_count,
-                sell_orders: sellOrder_count,
-                sell_price_min: sell_price_min,
-                sell_price_wavg: sell_price_wavg,
-                sell_price_5pct: sell_price_5pct,
-                sell_price_median: sell_price_median,
-                sell_units: sellUnits,
+              bluebird.try(() => {
+                if (result.existing) {
+                  return trx('station_order_stats').where({
+                    type_id: type_id,
+                    station_id: station_id,
+                    region_id: region_id,
+                  }).update({
+                    updated_at: sql.raw('current_timestamp'),
+                    buy_price_max: maxBuyPrice,
+                    buy_price_wavg: buy_price_wavg,
+                    buy_price_5pct: buy_price_5pct,
+                    buy_price_median: buy_price_median,
+                    buy_units: buyUnits,
+                    buy_orders: buyOrder_count,
+                    sell_orders: sellOrder_count,
+                    sell_price_min: sell_price_min,
+                    sell_price_wavg: sell_price_wavg,
+                    sell_price_5pct: sell_price_5pct,
+                    sell_price_median: sell_price_median,
+                    sell_units: sellUnits,
+                  })
+                } else {
+                  return trx('station_order_stats').insert({
+                    type_id: type_id,
+                    station_id: station_id,
+                    region_id: region_id,
+                    updated_at: sql.raw('current_timestamp'),
+                    buy_price_max: maxBuyPrice,
+                    buy_price_wavg: buy_price_wavg,
+                    buy_price_5pct: buy_price_5pct,
+                    buy_price_median: buy_price_median,
+                    buy_units: buyUnits,
+                    buy_orders: buyOrder_count,
+                    sell_orders: sellOrder_count,
+                    sell_price_min: sell_price_min,
+                    sell_price_wavg: sell_price_wavg,
+                    sell_price_5pct: sell_price_5pct,
+                    sell_price_median: sell_price_median,
+                    sell_units: sellUnits,
+                  })
+                }
               }),
-            ]).catch(e => {
-              console.log(e)
-              //process.exit(1)
-              throw e
-            })
+            ])
           })
         })
       }).then(function() {
@@ -605,8 +627,7 @@ function importSingleOrderType(type_id, region_id) {
           region_id: region_id,
         }).
         update('orders_next_polling_at', sql.raw('current_timestamp + orders_polling_interval'))
-      })
-
+      }).catch(errors.fn.reportAndRaise)
     })
   })
 }

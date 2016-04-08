@@ -10,6 +10,13 @@ const self = module.exports = {
       logfmt.error(err)
       rollbar.handleError(err)
     },
+    reportAndRaise: function(e) {
+      self.fn.report(e)
+      if (process.env.FATAL_EXIT_ON_ERROR == '1') {
+        process.exit(1)
+      }
+      throw e
+    },
     catch: function(fn) {
       return function() {
         try {

@@ -16,6 +16,8 @@ const pubsub = require('../src/pubsub')
 const uuidGen = require('node-uuid')
 const stats = require('../src/metrics').stats
 const _ = require('lodash')
+const fs = require('fs')
+const path = require('path')
 
 lib.setupSignalHandlers()
 
@@ -25,6 +27,7 @@ const eveThrottle = new bluebirdThrottle({
 })
 const base_url = process.env.CREST_API_BASE_URL
 const serverErrorDelay = 500
+const daily_insert_sql = fs.readFileSync(path.join(__dirname, '../doc') + '/daily_stats_insert.sql', 'utf8')
 
 function bidRangeToInt(range) {
   switch (range) {
@@ -359,25 +362,9 @@ function importSingleOrderType(type_id, region_id) {
             }).then(function() {
               incrementStats(o.location.id, 'new_' + buy_sell + '_orders')
               incrementStats(o.location.id, 'new_' + buy_sell + '_order_units', o.volume)
-              return trx.raw(sql('market_order_changes_'+lib.datePartitionedPostfix()).insert({
-                order_id: o.id,
-                type_id: o.type.id,
-                station_id: o.location.id,
-                buy: o.buy,
-                order_first_observed_at: now,
-                region_id: trx('staStations').select('regionID').where({
-                  stationID: o.location.id,
-                }),
-                observed_at: now,
-                price: o.price,
-                volume_remaining: o.volume,
-                issue_date: issueDate,
-              }).toString() + ' ON CONFLICT (order_id, issue_date, volume_remaining) DO NOTHING')
-            }).then(function() {
               return null
             })
           } else if (row.volume_remaining != o.volume || moment(row.issue_date).isBefore(issueDate)) {
-
             var volume_delta = row.volume_remaining - o.volume
 
             if (row.volume_remaining != o.volume) {
@@ -391,25 +378,6 @@ function importSingleOrderType(type_id, region_id) {
             }
 
             return bluebird.try(function() {
-              return trx.raw(sql('market_order_changes_'+lib.datePartitionedPostfix()).insert({
-                order_id: o.id,
-                type_id: o.type.id,
-                station_id: o.location.id,
-                buy: o.buy,
-                order_first_observed_at: row.first_observed_at,
-                region_id: trx('staStations').select('regionID').where({
-                  stationID: o.location.id,
-                }),
-                observed_at: now,
-                previously_observed_at: row.observed_at,
-                price: o.price,
-                previous_price: row.price,
-                volume_remaining: o.volume,
-                volume_delta: volume_delta,
-                issue_date: issueDate,
-                previous_issue_date: row.issue_date,
-              }).toString() + ' ON CONFLICT (order_id, issue_date, volume_remaining) DO NOTHING')
-            }).then(function() {
               return trx('market_orders').
               where({
                 id: o.id,
@@ -475,29 +443,6 @@ function importSingleOrderType(type_id, region_id) {
                   criteria: JSON.stringify(canceled_criteria),
                 })
               }
-
-              return bluebird.try(function() {
-                return trx.raw(sql('market_order_changes_'+lib.datePartitionedPostfix()).insert({
-                  order_id: row.id,
-                  type_id: row.type_id,
-                  station_id: row.station_id,
-                  region_id: row.region_id,
-                  buy: row.buy,
-                  order_first_observed_at: row.first_observed_at,
-                  observed_at: now,
-                  previously_observed_at: row.observed_at,
-                  price: row.price,
-                  previous_price: row.price,
-                  volume_remaining: 0,
-                  volume_delta: row.volume_remaining,
-                  issue_date: row.issue_date,
-                  previous_issue_date: row.issue_date,
-                  canceled: canceled,
-                  disappeared: true,
-                }).toString() + ' ON CONFLICT (order_id, issue_date, volume_remaining) DO NOTHING')
-              }).then(function() {
-                return trx.raw(sql('historical_orders').insert(row).toString() + ' ON CONFLICT (id, first_observed_at) DO NOTHING')
-              })
             }).then(function() {
               // delete old orders
               const stale_ids = _.map(stale_rows, 'id')
@@ -620,17 +565,18 @@ function importSingleOrderType(type_id, region_id) {
               local_change_stats[n + '_price_wavg_sold'] = (_.sum(_.map(sold, (o) => {
                 return o.price * o.units
               })) / _.sum(_.map(sold, 'units'))) || null
-              local_change_stats[n + '_price_min_sold'] = _.min(prices)
-              local_change_stats[n + '_price_max_sold'] = _.max(prices)
+              local_change_stats[n + '_price_min_sold'] = _.min(prices) || null
+              local_change_stats[n + '_price_max_sold'] = _.max(prices) || null
             })
 
             return bluebird.all([
-              trx('market_order_stats_ts_'+lib.datePartitionedPostfix()).insert(_.assign({
+              trx.raw(daily_insert_sql, _.assign({
+                table_name: 'market_daily_stats_'+lib.datePartitionedPostfix(),
                 type_id: type_id,
                 station_id: station_id,
                 region_id: region_id,
-                calculated_at: now,
-                last_updated_at: last_stats.updated_at || '2000-01-01 00:00:01 -8:00',
+                date_of: now,
+                stats_timestamp: Math.floor(now.getTime()/1000),
                 buy_price_max: maxBuyPrice,
                 buy_price_wavg: buy_price_wavg,
                 buy_price_5pct: buy_price_5pct,

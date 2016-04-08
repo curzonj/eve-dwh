@@ -12,5 +12,5 @@ var jita_station_id = 60003760
 Promise.try(function() {
 
 }).then(function() {
-    process.exit()
+  process.exit()
 })

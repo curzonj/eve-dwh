@@ -80,24 +80,23 @@ router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
 
 router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
   const columns = _.split(req.query.columns, ',')
-  columns.unshift(sql.raw('extract(epoch from calculated_at) AS unix_ts'))
 
-  return sql('market_order_stats_ts').where({
+  return sql('market_daily_stats').where({
       type_id: req.params.type_id,
       region_id: req.query.region_id,
       station_id: req.query.station_id,
-    }).whereRaw('calculated_at > current_timestamp - cast(? as interval)', [req.query.limit])
-    .select(columns)
+    }).whereRaw('date_of >= current_timestamp - cast(? as interval)', [req.query.limit])
+    .select(columns).select('stats_timestamp')
     .then(data => {
-      res.json(_.map(data, row => {
-        _.forEach(row, (v, k, o) => {
-          if (k !== 'calculated_at') {
-            o[k] = parseFloat(v)
-          }
+      res.json(_.flatten(_.map(data, row => {
+        return _.map(row.stats_timestamp, (value, index, col) => {
+          var fake_row = { unix_ts: value }
+          _.forEach(columns, name => {
+            fake_row[name] = parseFloat(row[name][index])
+          })
+          return fake_row
         })
-
-        return row
-      }))
+      })))
     }).catch(next)
 })
 

@@ -5,9 +5,9 @@ alter table market_daily_stats
     drop column hist_high,
     drop column hist_average;
 
-drop materialized view if exists trade_hub_stats;
 drop view if exists agg_market_type_stats;
 drop materialized view if exists observed_history;
+drop materialized view if exists trade_hub_stats;
 
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------

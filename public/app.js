@@ -32233,7 +32233,7 @@
 	          }),
 	        }, ],
 	      })
-	      graph.update = _.debounce(_.bind(graph.update, graph), 30)
+	      graph.update = _.debounce(_.bind(graph.update, graph), 30, { maxWait: 300 })
 
 	      const x_axis = new Rickshaw.Graph.Axis.Time({
 	        graph: graph,

@@ -14,6 +14,8 @@ insert into market_polling (type_id, region_id)
   select type_id, region_id from faction_regions join selected_types ON (1=1)
 ON CONFLICT (type_id, region_id) DO NOTHING;
 
+REFRESH MATERIALIZED VIEW stations_with_stats;
+
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
 

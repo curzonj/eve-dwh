@@ -464,12 +464,9 @@ function importSingleOrderType(type_id, region_id) {
           }
 
 
-          return bluebird.each(bluebird.try(() => {
-            return trx.raw('select station_id, station_id IN (select distinct station_id from station_order_stats) AS existing from ((select distinct station_id, region_id from station_order_stats) UNION (select station_id, region_id from trade_hub_stats order by buy_orders desc limit 15)) a where region_id = :region_id', {
-              region_id: region_id,
-            }).then(result => result.rows)
-          }), function(result) {
-            const station_id = result.station_id
+          return bluebird.each(
+            trx('stations_with_stats').where({ region_id: region_id }).pluck('station_id'),
+          function(station_id) {
             const raw_buy_orders = stationOrders.buy[station_id] || []
             const maxBuyPrice = _.max(_.map(raw_buy_orders, 'price')) || null
             const buyOrders = _.orderBy(
@@ -575,48 +572,37 @@ function importSingleOrderType(type_id, region_id) {
                 sell_units: sellUnits,
               }, local_change_stats)),
               // Provide the region_id so that the request can use the index
-              bluebird.try(() => {
-                if (result.existing) {
-                  return trx('station_order_stats').where({
-                    type_id: type_id,
-                    station_id: station_id,
-                    region_id: region_id,
-                  }).update({
-                    updated_at: sql.raw('current_timestamp'),
-                    buy_price_max: maxBuyPrice,
-                    buy_price_wavg: buy_price_wavg,
-                    buy_price_5pct: buy_price_5pct,
-                    buy_price_median: buy_price_median,
-                    buy_units: buyUnits,
-                    buy_orders: buyOrder_count,
-                    sell_orders: sellOrder_count,
-                    sell_price_min: sell_price_min,
-                    sell_price_wavg: sell_price_wavg,
-                    sell_price_5pct: sell_price_5pct,
-                    sell_price_median: sell_price_median,
-                    sell_units: sellUnits,
-                  })
-                } else {
-                  return trx('station_order_stats').insert({
-                    type_id: type_id,
-                    station_id: station_id,
-                    region_id: region_id,
-                    updated_at: sql.raw('current_timestamp'),
-                    buy_price_max: maxBuyPrice,
-                    buy_price_wavg: buy_price_wavg,
-                    buy_price_5pct: buy_price_5pct,
-                    buy_price_median: buy_price_median,
-                    buy_units: buyUnits,
-                    buy_orders: buyOrder_count,
-                    sell_orders: sellOrder_count,
-                    sell_price_min: sell_price_min,
-                    sell_price_wavg: sell_price_wavg,
-                    sell_price_5pct: sell_price_5pct,
-                    sell_price_median: sell_price_median,
-                    sell_units: sellUnits,
-                  })
-                }
-              }),
+              trx.raw(sql('station_order_stats').insert({
+                type_id: type_id,
+                station_id: station_id,
+                region_id: region_id,
+                updated_at: sql.raw('current_timestamp'),
+                buy_price_max: maxBuyPrice,
+                buy_price_wavg: buy_price_wavg,
+                buy_price_5pct: buy_price_5pct,
+                buy_price_median: buy_price_median,
+                buy_units: buyUnits,
+                buy_orders: buyOrder_count,
+                sell_orders: sellOrder_count,
+                sell_price_min: sell_price_min,
+                sell_price_wavg: sell_price_wavg,
+                sell_price_5pct: sell_price_5pct,
+                sell_price_median: sell_price_median,
+                sell_units: sellUnits,
+              }).toString() + ' ON CONFLICT (type_id, region_id, station_id) DO UPDATE SET ' +
+                'buy_price_max = EXCLUDED.buy_price_max,'+
+                'buy_price_wavg = EXCLUDED.buy_price_wavg,'+
+                'buy_price_5pct = EXCLUDED.buy_price_5pct,'+
+                'buy_price_median = EXCLUDED.buy_price_median,'+
+                'buy_units = EXCLUDED.buy_units,'+
+                'buy_orders = EXCLUDED.buy_orders,'+
+                'sell_orders = EXCLUDED.sell_orders,'+
+                'sell_price_min = EXCLUDED.sell_price_min,'+
+                'sell_price_wavg = EXCLUDED.sell_price_wavg,'+
+                'sell_price_5pct = EXCLUDED.sell_price_5pct,'+
+                'sell_price_median = EXCLUDED.sell_price_median,'+
+                'sell_units = EXCLUDED.sell_units'
+              ),
             ])
           })
         })

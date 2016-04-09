@@ -27,7 +27,15 @@ PGPASSWORD=$db_password pg_restore --verbose --clean --no-acl --no-owner -h $db_
 cd ../
 
 psql "$heroku_db_url" -f doc/rebuild_views.sql
-psql "$heroku_db_url" -f doc/update_polling.sql
+psql "$heroku_db_url" -f doc/configure_new_types.sql
 
 heroku ps:scale web=1 crest=3 clock=1 eve_api=1
+```
+
+Wait for all the history AND orders to get polled and then run `update_polling.sql`
+to add items to the `order_frequencies` and `observed_history` views and to
+recalibrate the polling intervals.
+
+```
+heroku pg:psql < doc/update_polling.sql
 ```

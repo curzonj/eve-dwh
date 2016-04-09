@@ -144,13 +144,11 @@ insert into :table_name: (
 
   day_buy_price_wavg_tx =
     CASE
-      WHEN :table_name:.day_buy_price_wavg_tx IS NULL AND EXCLUDED.day_buy_units_tx > 0 then
-        EXCLUDED.day_buy_price_wavg_tx
-      WHEN :table_name:.day_buy_price_wavg_tx IS NULL AND EXCLUDED.day_buy_units_tx = 0 then
-        NULL
-      WHEN :table_name:.day_buy_price_wavg_tx IS NOT NULL AND EXCLUDED.day_buy_units_tx = 0 then
+      WHEN EXCLUDED.day_buy_units_tx = 0 then
         :table_name:.day_buy_price_wavg_tx
-      WHEN :table_name:.day_buy_price_wavg_tx IS NOT NULL AND EXCLUDED.day_buy_units_tx > 0 then
+      WHEN :table_name:.day_buy_price_wavg_tx IS NULL then
+        EXCLUDED.day_buy_price_wavg_tx
+      WHEN :table_name:.day_buy_price_wavg_tx IS NOT NULL then
         (
           ( :table_name:.day_buy_price_wavg_tx * :table_name:.day_buy_units_tx) +
           (EXCLUDED.day_buy_price_wavg_tx * EXCLUDED.day_buy_units_tx)
@@ -159,13 +157,11 @@ insert into :table_name: (
 
   day_sell_price_wavg_tx =
     CASE
-      WHEN :table_name:.day_sell_price_wavg_tx IS NULL AND EXCLUDED.day_sell_units_tx > 0 then
-        EXCLUDED.day_sell_price_wavg_tx
-      WHEN :table_name:.day_sell_price_wavg_tx IS NULL AND EXCLUDED.day_sell_units_tx = 0 then
-        NULL
-      WHEN :table_name:.day_sell_price_wavg_tx IS NOT NULL AND EXCLUDED.day_sell_units_tx = 0 then
+      WHEN EXCLUDED.day_sell_units_tx = 0 then
         :table_name:.day_sell_price_wavg_tx
-      WHEN :table_name:.day_sell_price_wavg_tx IS NOT NULL AND EXCLUDED.day_sell_units_tx > 0 then
+      WHEN :table_name:.day_sell_price_wavg_tx IS NULL then
+        EXCLUDED.day_sell_price_wavg_tx
+      WHEN :table_name:.day_sell_price_wavg_tx IS NOT NULL then
         (
           ( :table_name:.day_sell_price_wavg_tx * :table_name:.day_sell_units_tx) +
           (EXCLUDED.day_sell_price_wavg_tx * EXCLUDED.day_sell_units_tx)

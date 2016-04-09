@@ -72,7 +72,7 @@ _.times(orderConcurrency, function(n) {
 
       if (rows.length > 0) {
         return bluebird.map(rows, function(row) {
-          return importSingleOrderType(row.type_id, row.region_id).then(function() {
+          return importSingleOrderType(row.type_id, row.region_id, logger).then(function() {
             if (row.orders_polling_override !== null)
               pubsub.emit('my_order_polling', {
                 region_id: row.region_id,
@@ -274,7 +274,7 @@ function importSingleHistory(type_id, region_id) {
   })
 }
 
-function importSingleOrderType(type_id, region_id) {
+function importSingleOrderType(type_id, region_id, logger) {
   var now = new Date()
   return getAllCrestOrders(type_id, region_id).spread(function(sell_orders, buy_orders) {
     return sql.transaction(function(trx) {
@@ -366,29 +366,41 @@ function importSingleOrderType(type_id, region_id) {
               return null
             })
           } else if (row.volume_remaining != o.volume || moment(row.issue_date).isBefore(issueDate)) {
-            var volume_delta = row.volume_remaining - o.volume
+            const new_values = {}
 
-            if (row.volume_remaining != o.volume) {
+            // Volume never goes back up, if it did then we have a caching issue
+            // and we have received stale data.
+            if (row.volume_remaining > o.volume) {
+              new_values.volume_remaining = o.volume
+
+              const volume_delta = row.volume_remaining - o.volume
               incrementStats(o.location.id, buy_sell + '_orders_vol_chg')
               incrementStats(o.location.id, buy_sell + '_units_vol_chg', volume_delta)
               storeSold(o.location.id, buy_sell, volume_delta, row.price)
             }
 
             if (moment(row.issue_date).isBefore(issueDate)) {
-              incrementStats(o.location.id, buy_sell + '_orders_price_chg')
+              new_values.issue_date = issueDate
+
+              if (o.price !== row.price) {
+                new_values.price = o.price
+                incrementStats(o.location.id, buy_sell + '_orders_price_chg')
+              }
             }
 
             return bluebird.try(function() {
-              return trx('market_orders').
-              where({
-                id: o.id,
-              }).
-              update({
-                observed_at: now,
-                price: o.price,
-                volume_remaining: o.volume,
-                issue_date: issueDate,
-              })
+              if (_.isEmpty(new_values)) {
+                logger.log({
+                  at: 'bad_order_caching',
+                  prev_volume: row.volume_remaining, next_volume: o.volume,
+                  prev_price: row.price, next_price: o.price,
+                  prev_issue: row.issue_date, next_issue: issueDate,
+                })
+              } else {
+                return trx('market_orders').
+                  where({ id: o.id, }).
+                  update(_.assign({ observed_at: now }, new_values))
+              }
             }).then(function() {
               return null
             })

@@ -141,8 +141,37 @@ insert into :table_name: (
   day_sell_price_min_tx = LEAST( :table_name:.day_sell_price_min_tx, EXCLUDED.day_sell_price_min_tx),
   day_buy_price_max_tx = GREATEST( :table_name:.day_buy_price_max_tx, EXCLUDED.day_buy_price_max_tx),
   day_sell_price_max_tx = GREATEST( :table_name:.day_sell_price_max_tx, EXCLUDED.day_sell_price_max_tx),
-  day_buy_price_wavg_tx = case ( :table_name:.day_buy_units_tx + EXCLUDED.day_buy_units_tx) when 0 then null else ((COALESCE( :table_name:.day_buy_price_wavg_tx, 0) * :table_name:.day_buy_units_tx) + (EXCLUDED.day_buy_price_wavg_tx * EXCLUDED.day_buy_units_tx))/( :table_name:.day_buy_units_tx + EXCLUDED.day_buy_units_tx) end,
-  day_sell_price_wavg_tx = case ( :table_name:.day_sell_units_tx + EXCLUDED.day_sell_units_tx) when 0 then null else ((COALESCE( :table_name:.day_sell_price_wavg_tx, 0) * :table_name:.day_sell_units_tx) + (EXCLUDED.day_sell_price_wavg_tx * EXCLUDED.day_sell_units_tx))/( :table_name:.day_sell_units_tx + EXCLUDED.day_sell_units_tx) end,
+
+  day_buy_price_wavg_tx =
+    CASE
+      WHEN :table_name:.day_buy_price_wavg_tx IS NULL AND EXCLUDED.day_buy_units_tx > 0 then
+        EXCLUDED.day_buy_price_wavg_tx
+      WHEN :table_name:.day_buy_price_wavg_tx IS NULL AND EXCLUDED.day_buy_units_tx = 0 then
+        NULL
+      WHEN :table_name:.day_buy_price_wavg_tx IS NOT NULL AND EXCLUDED.day_buy_units_tx = 0 then
+        :table_name:.day_buy_price_wavg_tx
+      WHEN :table_name:.day_buy_price_wavg_tx IS NOT NULL AND EXCLUDED.day_buy_units_tx > 0 then
+        (
+          ( :table_name:.day_buy_price_wavg_tx * :table_name:.day_buy_units_tx) +
+          (EXCLUDED.day_buy_price_wavg_tx * EXCLUDED.day_buy_units_tx)
+        ) / ( :table_name:.day_buy_units_tx + EXCLUDED.day_buy_units_tx)
+    END,
+
+  day_sell_price_wavg_tx =
+    CASE
+      WHEN :table_name:.day_sell_price_wavg_tx IS NULL AND EXCLUDED.day_sell_units_tx > 0 then
+        EXCLUDED.day_sell_price_wavg_tx
+      WHEN :table_name:.day_sell_price_wavg_tx IS NULL AND EXCLUDED.day_sell_units_tx = 0 then
+        NULL
+      WHEN :table_name:.day_sell_price_wavg_tx IS NOT NULL AND EXCLUDED.day_sell_units_tx = 0 then
+        :table_name:.day_sell_price_wavg_tx
+      WHEN :table_name:.day_sell_price_wavg_tx IS NOT NULL AND EXCLUDED.day_sell_units_tx > 0 then
+        (
+          ( :table_name:.day_sell_price_wavg_tx * :table_name:.day_sell_units_tx) +
+          (EXCLUDED.day_sell_price_wavg_tx * EXCLUDED.day_sell_units_tx)
+        ) / ( :table_name:.day_sell_units_tx + EXCLUDED.day_sell_units_tx)
+    END,
+
   day_new_buy_orders = :table_name:.day_new_buy_orders + EXCLUDED.day_new_buy_orders,
   day_new_sell_orders = :table_name:.day_new_sell_orders + EXCLUDED.day_new_sell_orders,
   day_buy_orders_tx = :table_name:.day_buy_orders_tx + EXCLUDED.day_buy_orders_tx,

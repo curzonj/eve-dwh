@@ -33,15 +33,33 @@ limit 20
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
 
-select "typeName", s0.*
-from
-(
-  select *, wavg_profit_per_unit * est_market_share as profit_pot from agg_market_type_stats
-
-  where station_id = 60003760 and type_id in (select "typeID" from type_metas where (("metaGroupID" = 4 or ("metaGroupID" = 1 and meta_level = max_meta)) and id_list && Array[9, 11]) OR id_list && Array[27])
-) s0
-join "invTypes" on ("typeID" = type_id)
-where ratio < 2 and buy_price_max < 10000000 and profit_pot > 1500000 order by profit_pot desc limit 50;
+-- Goblin's recommendation to only trade things that players can't manufacture
+type_id in (
+  select "typeID" from type_metas where
+  (
+    ("metaGroupID" = 4 or ("metaGroupID" = 1 and meta_level = max_meta)) and -- faction or max meta
+    id_list && Array[9, 11] -- ammo or modules
+  ) OR
+  id_list && Array[27] -- implants
+) AND
 
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
+-- Station trading. Search items by margin, volume, AND price
+
+select
+(select "typeName" from "invTypes" where "typeID" = type_id),
+*,
+wavg_profit_per_unit * est_market_share as profit_pot,
+(max_profit_per_unit / buy_price_max) as marign
+from agg_market_type_stats where
+station_id = 60003760 and
+-- select * from "invMarketGroups" where "parentGroupID" is null;
+type_id NOT IN (select type_id from character_order_details join market_orders using (id, type_id, station_id) where station_id = 60003760 AND buy) AND
+type_id NOT IN (select "typeID" from type_metas where id_list && Array[475, 1954]) AND
+ratio < 1.2 and
+avg_orders > 2 AND
+daily_buy_units > 1 AND
+buy_price_max < 900000000 AND
+(max_profit_per_unit / buy_price_max) > 0.2
+order by profit_pot desc limit 50;

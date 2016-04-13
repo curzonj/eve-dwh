@@ -45,24 +45,16 @@ create materialized view stations_with_stats as (
 
 -- Takes 146 seconds
 create materialized view observed_history as
-select *,
-(buy_isking / duration) as daily_buy_isking,
-(sell_isking / duration) as daily_sell_isking,
-(buy_units_tx / duration) as daily_buy_units,
-(sell_units_tx / duration) as daily_sell_units,
-(LEAST(buy_units_tx, sell_units_tx) / duration) as trade_units_tx
-from
-(
-  select type_id, station_id, region_id,
-  avg(day_buy_price_wavg_tx) as buy_price_wavg_sold,
-  avg(day_sell_price_wavg_tx) as sell_price_wavg_sold,
-  sum(day_sell_order_price_changes) as sell_isking,
-  sum(day_buy_order_price_changes) as buy_isking,
-  sum(day_buy_units_tx) as buy_units_tx,
-  sum(day_sell_units_tx) as sell_units_tx,
-  max(date_of) - min(date_of) as duration
-  from market_daily_stats where date_of >= (current_timestamp - interval '7 days') group by type_id, station_id, region_id
-) s1 where duration > 0;
+select type_id, station_id, region_id,
+avg(day_buy_price_wavg_tx) as buy_price_wavg_sold,
+avg(day_sell_price_wavg_tx) as sell_price_wavg_sold,
+max(day_sell_order_price_changes) as daily_sell_isking,
+max(day_buy_order_price_changes) as daily_buy_isking,
+median(day_buy_units_tx) as daily_buy_units,
+median(day_sell_units_tx) as daily_sell_units,
+sum(day_buy_units_tx) as buy_units_tx,
+sum(day_sell_units_tx) as sell_units_tx
+from market_daily_stats where date_of >= (current_timestamp - interval '14 days') group by type_id, station_id, region_id;
 
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
@@ -71,7 +63,7 @@ create view agg_market_type_stats as
 select *,
 ((sell_price_min * 0.985) - (buy_price_max * 1.0075)) as max_profit_per_unit,
 ((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) as wavg_profit_per_unit,
-trade_units_tx * (10 / greatest(10, daily_buy_isking, daily_sell_isking)) as est_market_share
+LEAST(daily_buy_units, daily_sell_units) * (10.0 / greatest(10, daily_buy_isking, daily_sell_isking)) as est_market_share
 
 from station_order_stats
 join order_frequencies using (type_id, region_id)

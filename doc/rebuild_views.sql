@@ -44,6 +44,7 @@ create materialized view stations_with_stats as (
 --------------------------------- --------------------------------- ---------------------------------
 
 -- Takes 146 seconds
+drop materialized view if exists observed_history;
 create materialized view observed_history as
 select type_id, station_id, region_id,
 avg(day_buy_price_wavg_tx) as buy_price_wavg_sold,
@@ -52,18 +53,19 @@ max(day_sell_order_price_changes) as daily_sell_isking,
 max(day_buy_order_price_changes) as daily_buy_isking,
 median(day_buy_units_tx) as daily_buy_units,
 median(day_sell_units_tx) as daily_sell_units,
-sum(day_buy_units_tx) as buy_units_tx,
-sum(day_sell_units_tx) as sell_units_tx
+median(day_buy_orders_tx) as daily_buy_orders,
+median(day_sell_orders_tx) as daily_sell_orders
 from market_daily_stats where date_of >= (current_timestamp - interval '14 days') group by type_id, station_id, region_id;
 
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
 
+drop view if exists agg_market_type_stats;
 create view agg_market_type_stats as
 select *,
 ((sell_price_min * 0.985) - (buy_price_max * 1.0075)) as max_profit_per_unit,
-((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) as wavg_profit_per_unit,
-LEAST(daily_buy_units, daily_sell_units) * (10.0 / greatest(10, daily_buy_isking, daily_sell_isking)) as est_market_share
+round((((sell_price_min * 0.985) - (buy_price_max * 1.0075)) / buy_price_max)::numeric, 2) as margin,
+((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) as wavg_profit_per_unit
 
 from station_order_stats
 join order_frequencies using (type_id, region_id)

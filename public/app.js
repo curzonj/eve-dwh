@@ -91,12 +91,6 @@
 
 	  document.title = 'Order Status'
 
-	  if (window.Notification === undefined) {
-	    window.Notification = { requestPermission: function() { } }
-	  }
-
-	  Notification.requestPermission(function() {})
-
 	  $('#messages').on('click', '.an_order', function() {
 	    $(this).remove()
 	  })
@@ -167,26 +161,13 @@
 	  */
 
 	  socket.on('order_announcement', function(orders) {
-	    _.forEach(orders, (msg) => {
-	      announceOrderOutBid(msg)
-	    })
+	    _.forEach(orders, msg => announceOrderOutBid(msg))
 	  })
 
 	  var outbid_body = handlebars.compile('Profit {{profit}}% - Chg {{chg}}%')
 	  socket.on('order_status', function(orders) {
 	    _.forEach(orders, (msg) => {
 	      if (announceOrderOutBid(msg)) {
-	        var system_name = msg.station_name.split(' ')[0]
-	        Notification.requestPermission(function() {
-	          var term = msg.buy ? 'Buy' : 'Sell'
-	          var notification = new Notification(term+' order for '+msg.type_name+' outbid in '+system_name, {
-	            body: outbid_body({
-	              profit: (100 * msg.market_profit / (msg.buy ? msg.price : msg.cost)).toFixed(2),
-	              chg: (100 * msg.price_change / msg.current_profit).toFixed(2),
-	            }),
-	            icon: 'https://image.eveonline.com/Type/'+ msg.type_id +'_64.png',
-	          })
-	        })
 	      }
 	    })
 	  })

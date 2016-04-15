@@ -25,3 +25,10 @@ CREATE AGGREGATE median(anyelement) (
   FINALFUNC=_final_median,
   INITCOND='{}'
 );
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
+
+CREATE OR REPLACE FUNCTION est_market_share(max_isking integer, orders numeric, isking numeric, units numeric) RETURNS numeric AS $$
+  select floor(orders * least(max_isking, greatest(1, isking)) / greatest(1, isking)) * units
+$$ LANGUAGE SQL IMMUTABLE;

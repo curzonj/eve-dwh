@@ -49,9 +49,10 @@ type_id in (
 
 select
 (select "typeName" from "invTypes" where "typeID" = type_id),
-*,
-wavg_profit_per_unit * est_market_share as profit_pot,
-(max_profit_per_unit / buy_price_max) as marign
+type_id, margin
+least(est_market_share(5.0, daily_buy_orders, daily_buy_isking, daily_buy_units), est_market_share(5.0, daily_sell_orders, daily_sell_isking, daily_sell_units)) AS est_market_share,
+round((wavg_profit_per_unit * ( least(est_market_share(5.0, daily_buy_orders, daily_buy_isking, daily_buy_units), est_market_share(5.0, daily_sell_orders, daily_sell_isking, daily_sell_units)) ))::numeric, 2) as profit_pot,
+
 from agg_market_type_stats where
 station_id = 60003760 and
 -- select * from "invMarketGroups" where "parentGroupID" is null;
@@ -61,5 +62,5 @@ ratio < 1.2 and
 avg_orders > 2 AND
 daily_buy_units > 1 AND
 buy_price_max < 900000000 AND
-(max_profit_per_unit / buy_price_max) > 0.2
+(max_profit_per_unit / buy_price_max) > 0.15
 order by profit_pot desc limit 50;

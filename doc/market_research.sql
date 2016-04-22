@@ -64,3 +64,9 @@ daily_buy_units > 1 AND
 buy_price_max < 900000000 AND
 (max_profit_per_unit / buy_price_max) > 0.15
 order by profit_pot desc limit 50;
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
+-- count the number of items on kill mails, dropped or destroyed
+
+select sum((select sum((value->>'qtyDropped')::int + (value->>'qtyDestroyed')::int) from jsonb_array_elements(kill_data->'items') a where (value->>'typeID')::int = 11279)) from zkillboard_data;

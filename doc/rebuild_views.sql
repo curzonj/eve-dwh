@@ -27,10 +27,13 @@ select "typeID", "metaGroupID", "typeName", "marketGroupID", "parentTypeID", "me
 create materialized view trade_hub_stats as (
   with
     sc as (select station_id, region_id, count(*), sum(price * volume_remaining) from market_orders where NOT buy group by region_id, station_id order by count desc limit 150),
-    bc as (select station_id, count(*), sum(price * volume_remaining) from market_orders where buy group by station_id order by count desc limit 150)
+    bc as (select station_id, count(*), sum(price * volume_remaining) from market_orders where buy group by station_id order by count desc)
 
-  select "stationName" station_name, sc.station_id, sc.region_id, sc.count sell_orders, sc.sum sell_order_isk, bc.count buy_orders, bc.sum buy_order_isk
-  from sc join "staStations" on ("stationID" = sc.station_id) join bc using (station_id)
+  select "stationName" station_name, "regionName" region_name, sc.station_id, sc.region_id, "solarSystemID" system_id, sc.count sell_orders, sc.sum sell_order_isk, bc.count buy_orders, bc.sum buy_order_isk
+  from sc
+  join "staStations" on ("stationID" = sc.station_id)
+  join "mapRegions" on ("mapRegions"."regionID" = sc.region_id)
+  left join bc using (station_id)
 );
 
 --------------------------------- --------------------------------- ---------------------------------
@@ -70,3 +73,9 @@ round((((sell_price_min * 0.985) - (buy_price_max * 1.0075)) / buy_price_max)::n
 from station_order_stats
 join order_frequencies using (type_id, region_id)
 join observed_history using (type_id, station_id, region_id);
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
+
+create materialized view recent_map_stats as
+select region_id, system_id, sum(jumps) jumps, sum(ship_kills) ship_kills, sum(npc_kills) npc_kills from eve_map_stats where date_of > current_timestamp - interval '14 days' group by region_id, system_id;

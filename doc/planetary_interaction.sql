@@ -55,8 +55,9 @@ p3_prices AS (
   "invTypes"."typeName",
   (select "typeName" from unnest(input_type_list) join input_prices on (unnest = "typeID") order by profit desc limit 1) as "AlsoBuildThisP2" ,
 
+  quantity,
   sum_cost raw_cost,
-  ((select buy_price_5pct from jita where type_id = a."typeID") * quantity) gross_revenue,
+  ((select buy_price_5pct from jita where type_id = a."typeID") * quantity * 0.9925) gross_revenue,
   (select profit from unnest(input_type_list) join input_prices on (unnest = "typeID") order by profit desc limit 1) sub_input_profit,
 
   (
@@ -99,7 +100,7 @@ p3_prices AS (
   WHERE a."isInput" = false AND "marketGroupID" = 1336
 )
 
-select "typeName", "AlsoBuildThisP2", (gross_revenue - raw_cost) raw_profit, (gross_revenue - net_input_costs) best_profit from p3_prices
+select "typeName", "AlsoBuildThisP2", net_input_costs, (gross_revenue - raw_cost) raw_profit, (gross_revenue - net_input_costs) best_profit, round(net_input_costs / quantity, 2) AS cost_per_unit from p3_prices
 where raw_cost < gross_revenue
-order by raw_profit desc
+order by best_profit desc
 ;

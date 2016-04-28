@@ -49,7 +49,9 @@ insert into :table_name: (
   day_buy_orders_tx,
   day_sell_orders_tx,
   day_buy_units_tx,
-  day_sell_units_tx
+  day_sell_units_tx,
+  day_avg_buy_units,
+  day_avg_sell_units
 ) values (
   :date_of,
   :type_id,
@@ -101,7 +103,9 @@ insert into :table_name: (
   ( ( :buy_orders_vol_chg )::integer + ( :buy_orders_disappeared )::integer ),
   ( ( :sell_orders_vol_chg )::integer + ( :sell_orders_disappeared )::integer ),
   ( ( :buy_units_vol_chg )::bigint + ( :buy_units_disappeared )::bigint ),
-  ( ( :sell_units_vol_chg )::bigint + ( :sell_units_disappeared )::bigint )
+  ( ( :sell_units_vol_chg )::bigint + ( :sell_units_disappeared )::bigint ),
+  ( :buy_units )::bigint,
+  ( :sell_units )::bigint
 ) on conflict (type_id, region_id, station_id, date_of) do update set
   stats_timestamp = array_append( :table_name:.stats_timestamp,  ( :stats_timestamp )::integer),
   buy_price_max = array_append( :table_name:.buy_price_max,  ( :buy_price_max )::numeric(16,2)),
@@ -173,5 +177,7 @@ insert into :table_name: (
   day_buy_orders_tx = :table_name:.day_buy_orders_tx + EXCLUDED.day_buy_orders_tx,
   day_sell_orders_tx = :table_name:.day_sell_orders_tx + EXCLUDED.day_sell_orders_tx,
   day_buy_units_tx = :table_name:.day_buy_units_tx + EXCLUDED.day_buy_units_tx,
-  day_sell_units_tx = :table_name:.day_sell_units_tx + EXCLUDED.day_sell_units_tx
+  day_sell_units_tx = :table_name:.day_sell_units_tx + EXCLUDED.day_sell_units_tx,
+  day_avg_buy_units = (select AVG(unnest) from unnest(array_append( :table_name:.buy_units,  ( :buy_units )::bigint))),
+  day_avg_sell_units = (select AVG(unnest) from unnest(array_append( :table_name:.sell_units,  ( :sell_units )::bigint)))
 ;

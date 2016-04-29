@@ -632,12 +632,12 @@ function importSingleOrderType(type_id, region_id, logger) {
 
 // returns [ sell_orders, buy_orders ]
 function getAllCrestOrders(type_id, region_id) {
-  return eveRequest(util.format('/market/%d/orders/?type=%s/types/%d/', region_id, base_url, type_id))
-    .then(results => {
+  return eveRequest(util.format('/market/%d/orders/?type=%s/types/%d/', region_id, base_url, type_id)).
+    then(results => {
       const grouped_buy = _.groupBy(results.items, 'buy')
       return [
-        { items: grouped_buy[false] },
-        { items: grouped_buy[true] },
+        { items: grouped_buy[false] || [] },
+        { items: grouped_buy[true] || [] },
       ]
     })
 }

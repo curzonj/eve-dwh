@@ -66,9 +66,9 @@ from market_daily_stats where date_of >= (current_timestamp - interval '14 days'
 drop view if exists agg_market_type_stats;
 create view agg_market_type_stats as
 select *,
-((sell_price_min * 0.985) - (buy_price_max * 1.0075)) as max_profit_per_unit,
-round((((sell_price_min * 0.985) - (buy_price_max * 1.0075)) / buy_price_max)::numeric, 2) as margin,
-((least(sell_price_min, sell_price_wavg_sold) * 0.985) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.0075)) as wavg_profit_per_unit
+((sell_price_min * 0.96) - (buy_price_max * 1.03)) as max_profit_per_unit,
+round((((sell_price_min * 0.96) - (buy_price_max * 1.03)) / buy_price_max)::numeric, 2) as margin,
+((least(sell_price_min, sell_price_wavg_sold) * 0.96) - (greatest(buy_price_max, buy_price_wavg_sold) * 1.03)) as wavg_profit_per_unit
 
 from station_order_stats
 join order_frequencies using (type_id, region_id)

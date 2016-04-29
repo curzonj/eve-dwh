@@ -630,13 +630,14 @@ function importSingleOrderType(type_id, region_id, logger) {
   })
 }
 
+// returns [ sell_orders, buy_orders ]
 function getAllCrestOrders(type_id, region_id) {
-  return bluebird.all([
-    getCrestOrders('sell', type_id, region_id),
-    getCrestOrders('buy', type_id, region_id),
-  ])
-}
-
-function getCrestOrders(side, type_id, region_id) {
-  return eveRequest(util.format('/market/%d/orders/%s/?type=%s/types/%d/', region_id, side, base_url, type_id))
+  return eveRequest(util.format('/market/%d/orders/?type=%s/types/%d/', region_id, base_url, type_id))
+    .then(results => {
+      const grouped_buy = _.groupBy(results.items, 'buy')
+      return [
+        { items: grouped_buy[false] },
+        { items: grouped_buy[true] },
+      ]
+    })
 }

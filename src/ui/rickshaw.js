@@ -111,21 +111,8 @@ module.exports = function(hash_querystring) {
 
     axios.get('/api/v1/types/'+type_id+'/market/buy_sell_series', {
       params: {
-        limit: '4 weeks',
         region_id: region_id,
         station_id: station_id,
-        columns: [
-          'buy_price_max',
-          'buy_units_vol_chg',
-          'buy_units_disappeared',
-          'buy_units',
-          'new_buy_order_units',
-          'sell_price_min',
-          'sell_units',
-          'sell_units_vol_chg',
-          'sell_units_disappeared',
-          'new_sell_order_units',
-        ].join(),
       },
     }).then(response => {
       if (_.isEmpty(response.data)) {

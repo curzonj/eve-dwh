@@ -26,7 +26,7 @@ select * from (
   hub.ratio < 1.2 and
   hub.avg_orders > 2 AND
   hub.daily_buy_units > 1 AND
-  jita.sell_price_min < 10000000 AND
+  jita.sell_price_min < 100000000 AND
   hub.sell_price_wavg_sold > jita.sell_price_min * 1.2 AND
   -- No manufacturing resources or SKINs
   type_id NOT IN (select "typeID" from type_metas where id_list && Array[475, 1954])

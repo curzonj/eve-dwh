@@ -191,23 +191,6 @@
             "required": true,
             "type": "integer",
             "format": "int64"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "columns",
-            "in": "query",
-            "description": "columns to return",
-            "required": true,
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "collectionFormat": "csv"
           }
         ],
         "responses": {

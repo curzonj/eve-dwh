@@ -4,7 +4,7 @@ create materialized view market_group_arrays as
 with recursive g(market_group_id, parent_group_id, group_name, id_list, name_list) as (
     select "marketGroupID", "parentGroupID", "marketGroupName", ARRAY["marketGroupID"]::int[], ARRAY["marketGroupName"] from "invMarketGroups" where "parentGroupID" is null
       UNION
-          select "marketGroupID", "parentGroupID", "marketGroupName", id_list || "marketGroupID"::int, name_list || "marketGroupName" from g, "invMarketGroups" where "parentGroupID" = market_group_id
+          select "marketGroupID", "parentGroupID", "marketGroupName", id_list || "marketGroupID"::int, (name_list || "marketGroupName")::varchar(100)[] from g, "invMarketGroups" where "parentGroupID" = market_group_id
 )
 select * from g;
 
@@ -77,5 +77,5 @@ join observed_history using (type_id, station_id, region_id);
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
 
-create materialized view recent_map_stats as
-select region_id, system_id, sum(jumps) jumps, sum(ship_kills) ship_kills, sum(npc_kills) npc_kills from eve_map_stats where date_of > current_timestamp - interval '14 days' group by region_id, system_id;
+--create materialized view recent_map_stats as
+--select region_id, system_id, sum(jumps) jumps, sum(ship_kills) ship_kills, sum(npc_kills) npc_kills from eve_map_stats where date_of > current_timestamp - interval '14 days' group by region_id, system_id;

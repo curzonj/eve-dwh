@@ -48172,7 +48172,7 @@
 
 	var Handlebars = __webpack_require__(40);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<div id=\"chart_container\">\n  <h1 class=\"chart_loading\">Loading the chart data...</h1>\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n  <div id=\"center_chart\"></div>\n  <div id=\"slider\"></div>\n</div>\n";
+	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div id=\"vol_axis\" class=\"chart_axis\"></div>\n<div id=\"price_axis\" class=\"chart_axis\"></div>\n<div id=\"center_chart\"></div>\n<div id=\"slider\"></div>\n";
 	},"useData":true});
 
 /***/ },

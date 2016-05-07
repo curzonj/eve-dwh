@@ -6,6 +6,7 @@
   "devel": true,
   "newcap": false,
   "asi": true,
+  "predef": [ "App" ],
   "overrides": {
     "src/**/*.js": {
       "node": true

@@ -7,13 +7,10 @@ const _ = require('lodash')
 const axios = require('axios')
 const bluebird = require('bluebird')
 const querystring = require('querystring')
-const Bloodhound = require('typeahead.js')
 const Backbone = require('backbone')
 const Marionette = require('backbone.marionette')
 
-var type_id = 34
-var region_id = 10000002
-var station_id =  60003760
+const ChartNav = require('./chart_nav')
 
 function calculateGraphSize() {
   const width = $('#chart_container').width() - 80
@@ -24,6 +21,9 @@ function calculateGraphSize() {
 }
 
 function loadTypeGraph(view) {
+  const type_id = view.model.get('type_id')
+  const region_id = view.model.get('region_id')
+  const station_id = view.model.get('station_id')
 
   axios.get('/api/v1/types/'+type_id+'/market/stats', {
     params: {
@@ -43,7 +43,7 @@ function loadTypeGraph(view) {
     const data = _.sortBy(response.data.historical, 'unix_ts')
 
     if (_.isEmpty(data)) {
-      view.getUI('chart_loading').text('No data available for '+type_id)
+      view.ui.chart_loading.text('No data available for '+type_id)
       return
     }
 
@@ -73,7 +73,7 @@ function loadTypeGraph(view) {
 
     const size = calculateGraphSize()
     const graph = new Rickshaw.Graph({
-      element: view.getUI('center_chart').get(0),
+      element: view.ui.center_chart.get(0),
       width: size.width,
       height: size.height,
       renderer: 'line',
@@ -128,15 +128,15 @@ function loadTypeGraph(view) {
       graph: graph,
     })
 
-    view.getUI('center_chart').css('left', '80px')
-    view.getUI('price_axis').css('left', '40px')
+    view.ui.center_chart.css('left', '80px')
+    view.ui.price_axis.css('left', '40px')
 
     new Rickshaw.Graph.Axis.Y.Scaled({
       graph: graph,
       orientation: 'left',
       scale: price_scale,
       tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-      element: view.getUI('price_axis').get(0),
+      element: view.ui.price_axis.get(0),
     })
     new Rickshaw.Graph.Axis.Y.Scaled({
       graph: graph,
@@ -144,7 +144,7 @@ function loadTypeGraph(view) {
       scale: vol_scale,
       grid: false,
       tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-      element: view.getUI('vol_axis').get(0),
+      element: view.ui.vol_axis.get(0),
     })
     new Rickshaw.Graph.HoverDetail({
       graph: graph,
@@ -153,79 +153,14 @@ function loadTypeGraph(view) {
       },
     })
 
-    view.getUI('center_chart').data('graph', graph)
-    view.getUI('chart_loading').hide()
+    view.ui.center_chart.data('graph', graph)
+    view.ui.chart_loading.hide()
     renderGraph(view)
   })
 }
 
-function buildLocationSearch() {
-  $('#location-search input').typeahead({
-    hint: true,
-    highlight: true,
-    minLength: 3,
-  }, {
-    name: 'states',
-    limit: 15,
-    display: 'name',
-    source: new Bloodhound({
-      datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
-      queryTokenizer: Bloodhound.tokenizers.whitespace,
-      remote: {
-        url: '/api/v1/locations/autocomplete?q=%QUERY',
-        wildcard: '%QUERY',
-      },
-    }),
-  }).bind('typeahead:select', function(ev, s) {
-    console.log(s)
-
-    if (s.stationID !== undefined) {
-      station_id = s.stationID
-      region_id = s.regionID
-    }
-
-    loadTypeGraph()
-  })
-}
-
-function buildTypeSearch() {
-  $('#type-search input').typeahead({
-    hint: true,
-    highlight: true,
-    minLength: 3,
-  }, {
-    name: 'states',
-    limit: 15,
-    display: 'typeName',
-    source: new Bloodhound({
-      datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
-      queryTokenizer: Bloodhound.tokenizers.whitespace,
-      remote: {
-        url: '/api/v1/types/autocomplete?q=%QUERY',
-        wildcard: '%QUERY',
-      },
-    }),
-  }).bind('typeahead:select', function(ev, suggestion) {
-    type_id = suggestion.typeID
-    loadTypeGraph()
-  })
-}
-
-function oldRenderFunc(hash_querystring) {
-  $('div#per-page-navbar').html(require('./rickshaw_nav.hbs')())
-
-  buildTypeSearch()
-  buildLocationSearch()
-
-  /*
-  const params = querystring.parse(hash_querystring)
-  const type_id = params.type_id || 34
-  */
-  loadTypeGraph()
-}
-
 function renderGraph(view) {
-  const graph = view.getUI('center_chart').data('graph')
+  const graph = view.ui.center_chart.data('graph')
 
   if (typeof graph !== 'undefined') {
     const size = calculateGraphSize()
@@ -239,7 +174,11 @@ function renderGraph(view) {
   }
 }
 
-module.exports = Marionette.View.extend({
+const ChartData = Backbone.Model.extend({
+
+})
+
+const ChartView = Marionette.ItemView.extend({
   template: require('./rickshaw.hbs'),
   ui: {
     center_chart: '#center_chart',
@@ -248,7 +187,7 @@ module.exports = Marionette.View.extend({
     chart_loading: 'h1.chart_loading',
   },
   initialize: function() {
-    this.resizeHandler = _.bind(renderGraph, undefined, this)
+    this.resizeHandle = _.bind(renderGraph, undefined, this)
     $(window).on('resize', this.resizeHandler)
   },
   onDestroy: function() {
@@ -256,5 +195,32 @@ module.exports = Marionette.View.extend({
   },
   onRender: function() {
     loadTypeGraph(this)
+  },
+})
+
+module.exports = Marionette.LayoutView.extend({
+  template: () => '<div id="chart_container"></div>',
+  regions: {
+    chart: '#chart_container',
+  },
+  modelEvents: {
+    change: function() {
+      this.showChildView('chart', new ChartView({ model: this.model }))
+    },
+  },
+  initialize: function() {
+    this.model = new ChartData()
+    this.listenTo(this.model, 'change', this.modelEvents.change, this)
+
+    this.nav_view = new ChartNav({ model: this.model })
+  },
+  onShow: function() {
+    // Set this here so that it triggers a change, but only
+    // after we've been rendered
+    this.model.set({
+      type_id: 34,
+      region_id: 10000002,
+      station_id:  60003760,
+    })
   },
 })

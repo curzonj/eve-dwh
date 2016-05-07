@@ -94,7 +94,7 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
       region_id: req.query.region_id,
       //  station_id: req.query.station_id,
     }).leftJoin(sql.raw('(select * from market_daily_stats where type_id = ? and region_id = ? and station_id = ?) m using (type_id, region_id, date_of)', [req.params.type_id, req.query.region_id, req.query.station_id]))
-    .whereRaw('date_of >= current_timestamp - cast(? as interval)', ['6 months'])
+    .whereRaw('date_of >= current_timestamp - cast(? as interval)', ['12 months'])
     .select('date_of', 'quantity AS region_units', 'average AS region_avg', 'day_buy_price_wavg_tx',
     'day_sell_price_wavg_tx', 'day_avg_buy_units', 'day_avg_sell_units').
     then(data => {

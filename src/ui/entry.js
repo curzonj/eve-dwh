@@ -35,13 +35,25 @@ app.mainRegion = new Marionette.Region({
 app.navRegion = new Marionette.Region({
   el: '#per-page-navbar',
 })
-app.mainRegion.on('show', function(view, region, options) {
+
+// mn3 region callback
+function mn3rc(fn) {
+  return function(a1, a2, a3) {
+    if (typeof a1.render === 'function') {
+      return fn(a2, a1, a3)
+    } else {
+      return fn(a1, a2, a3)
+    }
+  }
+}
+
+app.mainRegion.on('show', mn3rc(function(region, view, options) {
   if (view.nav_view)
     App.navRegion.show(view.nav_view)
-})
-app.mainRegion.on('before:swapOut', function(view, region, opts) {
+}))
+app.mainRegion.on('before:swapOut', mn3rc(function(region, view, opts) {
   app.navRegion.empty()
-})
+}))
 
 app.on('start', function() {
   Backbone.history.start()

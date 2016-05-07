@@ -37,7 +37,7 @@ function buildPriceChart(view, data) {
 
   const size = view.calculateGraphSize()
   const graph = new Rickshaw.Graph({
-    element: view.ui.price_chart.get(0),
+    element: view.$('#price_chart').get(0),
     width: size.width,
     height: size.height,
     renderer: 'line',
@@ -69,7 +69,7 @@ function buildPriceChart(view, data) {
     orientation: 'left',
     scale: price_scale,
     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-    element: view.ui.price_axis.get(0),
+    element: view.$('#price_axis').get(0),
   })
   new Rickshaw.Graph.HoverDetail({
     graph: graph,
@@ -95,7 +95,7 @@ function buildVolumeChart(view, data) {
 
   const size = view.calculateGraphSize()
   const graph = new Rickshaw.Graph({
-    element: view.ui.vol_chart.get(0),
+    element: view.$('#vol_chart').get(0),
     width: size.width,
     height: size.height,
     renderer: 'line',
@@ -128,7 +128,7 @@ function buildVolumeChart(view, data) {
     orientation: 'left',
     scale: vol_scale,
     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-    element: view.ui.vol_axis.get(0),
+    element: view.$('#vol_axis').get(0),
   })
   new Rickshaw.Graph.HoverDetail({
     graph: graph,
@@ -163,19 +163,10 @@ function loadTypeGraph(view) {
     },
   }).then(response => {
     var data = _.sortBy(response.data.historical, 'unix_ts')
-/*
-    // We have to make sure that we don't have any volume data before
-    // the first valid price data because the renderes won't lineup.
-    const goodAt = _.findIndex(data, row => {
-      return _.isNumber(row.buy_price_max) || _.isNumber(row.sell_price_min)
-    })
-    data = _.slice(data, goodAt)
-
     if (_.isEmpty(data)) {
       view.ui.chart_loading.text('No data available for '+type_id)
       return
     }
-    */
 
     buildPriceChart(view, data)
     buildVolumeChart(view, data)
@@ -188,13 +179,9 @@ function loadTypeGraph(view) {
 
 const ChartData = Backbone.Model.extend({ })
 
-const ChartView = Marionette.ItemView.extend({
+const ChartView = Marionette.View.extend({
   template: require('./rickshaw.hbs'),
   ui: {
-    price_chart: '#price_chart',
-    vol_chart: '#vol_chart',
-    vol_axis: '#vol_axis',
-    price_axis: '#price_axis',
     chart_loading: 'h1.chart_loading',
   },
   initialize: function() {
@@ -229,7 +216,7 @@ const ChartView = Marionette.ItemView.extend({
   },
 })
 
-module.exports = Marionette.LayoutView.extend({
+module.exports = Marionette.View.extend({
   template: () => '<div id="chart_container"></div>',
   regions: {
     chart: '#chart_container',
@@ -241,11 +228,9 @@ module.exports = Marionette.LayoutView.extend({
   },
   initialize: function() {
     this.model = new ChartData()
-    this.listenTo(this.model, 'change', this.modelEvents.change, this)
-
     this.nav_view = new ChartNav({ model: this.model })
   },
-  onShow: function() {
+  onRender: function() {
     // Set this here so that it triggers a change, but only
     // after we've been rendered
     this.model.set({

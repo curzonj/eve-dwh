@@ -54,7 +54,7 @@ function buildLocationSearch(view) {
   })
 }
 
-module.exports = Marionette.ItemView.extend({
+module.exports = Marionette.View.extend({
   template: require('./rickshaw_nav.hbs'),
   navigate: function(opts) {
     this.model.set(opts)

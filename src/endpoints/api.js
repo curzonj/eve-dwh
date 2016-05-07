@@ -80,8 +80,6 @@ router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
 })
 
 router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
-  const split_interval = '7 days'
-  const limit = '6 months'
   const columns = [
     'buy_price_max',
     'buy_units',
@@ -94,8 +92,7 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
       type_id: req.params.type_id,
       region_id: req.query.region_id,
       station_id: req.query.station_id,
-    }).whereRaw('date_of < current_timestamp - cast(? as interval)', [split_interval])
-    .whereRaw('date_of >= current_timestamp - cast(? as interval)', [limit])
+    }).whereRaw('date_of >= current_timestamp - cast(? as interval)', ['6 months'])
     .select('date_of', 'day_buy_price_wavg_tx',
     'day_sell_price_wavg_tx', 'day_avg_buy_units', 'day_avg_sell_units').
     then(data => {
@@ -113,7 +110,7 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
       type_id: req.params.type_id,
       region_id: req.query.region_id,
       station_id: req.query.station_id,
-    }).whereRaw('date_of >= current_timestamp - cast(? as interval)', [split_interval])
+    }).whereRaw('date_of >= current_timestamp - cast(? as interval)', ['7 days'])
     .select(columns).select('stats_timestamp')
     .then(data => {
       return _.flatten(_.map(data, row => {
@@ -127,7 +124,10 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
       }))
     }),
   ]).spread((daily, fine_grained) => {
-    res.json(_.sortBy(_.concat(daily, fine_grained), 'unix_ts'))
+    res.json({
+      recent: fine_grained,
+      historical: daily,
+    })
   }).catch(next)
 })
 

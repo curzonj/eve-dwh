@@ -8,6 +8,7 @@
   "scripts": {},
   "devDependencies": {
     "backbone": "^1.2.3",
+    "backbone.marionette": "v3.0.0-pre.2",
     "gulp": "^3.8.7",
     "gulp-batch": "latest",
     "gulp-jsbeautifier": "latest",

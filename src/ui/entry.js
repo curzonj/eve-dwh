@@ -1,8 +1,16 @@
 'use strict';
 
-global.orderNotificationsPage = require('./orders')
-
+const $ = require('jquery')
 const Backbone = require('backbone')
+const Marionette = require('backbone.marionette')
+
+const app = new Marionette.Application()
+global.app = app
+
+const Views = {
+  rickshaw: require('./rickshaw'),
+}
+
 const RouterClass = Backbone.Router.extend({
   routes: {
     stats:    'rickshaw',
@@ -11,15 +19,24 @@ const RouterClass = Backbone.Router.extend({
   },
 
   defaultRoute: function() {
-    this.navigate('orders', { trigger: true })
+    this.navigate('stats', { trigger: true })
   },
 
   orders: require('./orders'),
-  rickshaw: require('./rickshaw'),
+  rickshaw: function() {
+    app.mainRegion.show(new Views.rickshaw())
+  },
 })
 
-global.router = new RouterClass()
+app.router = new RouterClass()
+app.mainRegion = new Marionette.Region({
+  el: '#content',
+});
 
-global.$(function() {
+app.on('start', function() {
   Backbone.history.start()
+})
+
+$(function() {
+  app.start()
 })

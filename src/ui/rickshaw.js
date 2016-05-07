@@ -82,29 +82,21 @@ function buildPriceChart(view, data) {
 }
 
 function buildVolumeChart(view, data) {
-  function convertEMA(name) {
-    const span = 5 * 24 * 60 * 60 // 5 days
-    var prevT
-    var avg
+  function convertSMA(name, period) {
+    var list = []
 
     _.forEach(data, row => {
       const v = row[name]
-      if (v === undefined || v === null)
-        return
+      list.push(v)
+      if (list.length > period)
+        list.splice(0,1)
 
-      if (avg === undefined) {
-        avg = v
-      } else {
-        const a = 1 - (Math.exp(-(row.unix_ts - prevT) / span))
-        avg = a * v + (1 - a) * avg;
-      }
-
-      prevT = row.unix_ts
-      row[name] = avg
+      var sum = _.reduce(list, (acc, v) => { return acc + v })
+      row[name] = sum / list.length
     })
   }
 
-  convertEMA('region_units')
+  convertSMA('region_units', 10)
 
   const vol_min = _.reduce(data, (result, row) => {
     function or(v) { return (_.isNumber(v) ? v : Number.MAX_VALUE) }
@@ -126,7 +118,7 @@ function buildVolumeChart(view, data) {
     stack: false,
     //interpolation: 'step-after',
     series: [{
-      name: 'region_units_EMA',
+      name: 'region_units_SMA',
       color: 'lightgreen',
       scale: vol_scale,
       data: extract(data, 'region_units'),

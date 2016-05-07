@@ -9079,12 +9079,120 @@
 
 	const ChartNav = __webpack_require__(37)
 
-	function calculateGraphSize() {
-	  const width = $('#chart_container').width() - 80
-	  return {
-	    width: width,
-	    height: Math.min(width*0.5, ($(window).height() - 70)*0.80),
-	  }
+	function extract(data, name) {
+	  return _.compact(_.map(data, r => {
+	    const v = r[name]
+	    if (_.isNumber(v))
+	      return { x: r.unix_ts, y: v }
+	  }))
+	}
+
+	function buildPriceChart(view, data) {
+	  const price_min = _.reduce(data, (result, row) => {
+	    return Math.min(result, row.buy_price_max)
+	  }, Number.MAX_VALUE)
+	  const price_max = _.reduce(data, (result, row) => {
+	    return Math.max(result, row.sell_price_min)
+	  }, Number.MIN_VALUE)
+
+	  const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
+	  const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max])
+
+	  const size = view.calculateGraphSize()
+	  const graph = new Rickshaw.Graph({
+	    element: view.ui.price_chart.get(0),
+	    width: size.width,
+	    height: size.height,
+	    renderer: 'line',
+	    stack: false,
+	    interpolation: 'step-after',
+	    series: [{
+	      name: 'buy_price_max',
+	      color: 'lightblue',
+	      scale: price_scale,
+	      data: extract(data, 'buy_price_max'),
+	    }, {
+	      name: 'sell_price_min',
+	      color: 'steelblue',
+	      scale: price_scale,
+	      data: extract(data, 'sell_price_min'),
+	    }, ],
+	  })
+
+	  new Rickshaw.Graph.Axis.Time({
+	    graph: graph,
+	  })
+	  new Rickshaw.Graph.Axis.Y.Scaled({
+	    graph: graph,
+	    orientation: 'left',
+	    scale: price_scale,
+	    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+	    element: view.ui.price_axis.get(0),
+	  })
+	  new Rickshaw.Graph.HoverDetail({
+	    graph: graph,
+	    formatter: function(series, x, y) {
+	      return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+	    },
+	  })
+
+	  view.graphs.push(graph)
+	  return graph
+	}
+
+	function buildVolumeChart(view, data) {
+	  const vol_min = _.reduce(data, (result, row) => {
+	    return Math.min(result, row.buy_units, row.sell_units)
+	  }, Number.MAX_VALUE)
+	  const vol_max = _.reduce(data, (result, row) => {
+	    return Math.max(result, row.buy_units, row.sell_units)
+	  }, Number.MIN_VALUE)
+
+	  const vol_scale_type = ((vol_max / vol_min) > 2 && vol_min > 0) ? 'log' : 'linear'
+	  const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max])
+
+	  const size = view.calculateGraphSize()
+	  const graph = new Rickshaw.Graph({
+	    element: view.ui.vol_chart.get(0),
+	    width: size.width,
+	    height: size.height,
+	    renderer: 'line',
+	    stack: false,
+	    interpolation: 'step-after',
+	    series: [{
+	      name: 'buy_units',
+	      color: 'pink',
+	      scale: vol_scale,
+	      data: extract(data, 'buy_units'),
+	    }, {
+	      name: 'sell_units',
+	      color: 'orange',
+	      scale: vol_scale,
+	      data: extract(data, 'sell_units'),
+	    }, ],
+	  })
+
+	  new Rickshaw.Graph.Axis.Time({
+	    graph: graph,
+	  })
+
+	  new Rickshaw.Graph.Axis.Y.Scaled({
+	    graph: graph,
+	    orientation: 'left',
+	    scale: vol_scale,
+	    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+	    element: view.ui.vol_axis.get(0),
+	  })
+	  new Rickshaw.Graph.HoverDetail({
+	    graph: graph,
+	    formatter: function(series, x, y) {
+	      return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+	    },
+	  })
+
+	  view.graphs.push(graph)
+
+	  return graph
 	}
 
 	function loadTypeGraph(view) {
@@ -9107,155 +9215,63 @@
 	      station_id: station_id,
 	    },
 	  }).then(response => {
-	    const data = _.sortBy(response.data.historical, 'unix_ts')
+	    var data = _.sortBy(response.data.historical, 'unix_ts')
+
+	    // We have to make sure that we don't have any volume data before
+	    // the first valid price data because the renderes won't lineup.
+	    const goodAt = _.findIndex(data, row => {
+	      return _.isNumber(row.buy_price_max) || _.isNumber(row.sell_price_min)
+	    })
+	    data = _.slice(data, goodAt)
 
 	    if (_.isEmpty(data)) {
 	      view.ui.chart_loading.text('No data available for '+type_id)
 	      return
 	    }
 
-	    const price_min = _.reduce(data, (result, row) => {
-	      return Math.min(result, row.buy_price_max)
-	    }, Number.MAX_VALUE)
-	    const price_max = _.reduce(data, (result, row) => {
-	      return Math.max(result, row.sell_price_min)
-	    }, Number.MIN_VALUE)
+	    buildPriceChart(view, data)
+	    buildVolumeChart(view, data)
 
-	    const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
-	    const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max])
-	    /*if (price_scale_type === 'log')
-	      price_scale.nice() */
-
-	    const vol_min = _.reduce(data, (result, row) => {
-	      return Math.min(result, row.buy_units, row.sell_units)
-	    }, Number.MAX_VALUE)
-	    const vol_max = _.reduce(data, (result, row) => {
-	      return Math.max(result, row.buy_units, row.sell_units)
-	    }, Number.MIN_VALUE)
-
-	    const vol_scale_type = ((vol_max / vol_min) > 2 && vol_min > 0) ? 'log' : 'linear'
-	    const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max])
-	    /*if (vol_scale_type === 'log')
-	      vol_scale.nice()*/
-
-	    const size = calculateGraphSize()
-	    const graph = new Rickshaw.Graph({
-	      element: view.ui.center_chart.get(0),
-	      width: size.width,
-	      height: size.height,
-	      renderer: 'line',
-	      stack: false,
-	      interpolation: 'step-after',
-	      series: [{
-	        name: 'buy_units',
-	        color: 'pink',
-	        scale: vol_scale,
-	        data: _.map(data, r => {
-	          return {
-	            x: r.unix_ts,
-	            y: r.buy_units,
-	          }
-	        }),
-	      }, {
-	        name: 'sell_units',
-	        color: 'orange',
-	        scale: vol_scale,
-	        data: _.map(data, r => {
-	          return {
-	            x: r.unix_ts,
-	            y: r.sell_units,
-	          }
-	        }),
-	      }, {
-	        name: 'buy_price_max',
-	        color: 'lightblue',
-	        scale: price_scale,
-	        data: _.compact(_.map(data, r => {
-	          if (_.isNumber(r.buy_price_max))
-	            return {
-	              x: r.unix_ts,
-	              y: r.buy_price_max,
-	            }
-	        })),
-	      }, {
-	        name: 'sell_price_min',
-	        color: 'steelblue',
-	        scale: price_scale,
-	        data: _.compact(_.map(data, r => {
-	          if (_.isNumber(r.sell_price_min))
-	            return {
-	              x: r.unix_ts,
-	              y: r.sell_price_min,
-	            }
-	        })),
-	      }, ],
-	    })
-
-	    const x_axis = new Rickshaw.Graph.Axis.Time({
-	      graph: graph,
-	    })
-
-	    view.ui.center_chart.css('left', '80px')
-	    view.ui.price_axis.css('left', '40px')
-
-	    new Rickshaw.Graph.Axis.Y.Scaled({
-	      graph: graph,
-	      orientation: 'left',
-	      scale: price_scale,
-	      tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-	      element: view.ui.price_axis.get(0),
-	    })
-	    new Rickshaw.Graph.Axis.Y.Scaled({
-	      graph: graph,
-	      orientation: 'left',
-	      scale: vol_scale,
-	      grid: false,
-	      tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-	      element: view.ui.vol_axis.get(0),
-	    })
-	    new Rickshaw.Graph.HoverDetail({
-	      graph: graph,
-	      formatter: function(series, x, y) {
-	        return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
-	      },
-	    })
-
-	    view.ui.center_chart.data('graph', graph)
 	    view.ui.chart_loading.hide()
-	    renderGraph(view)
+	    view.renderGraphs()
 	  })
 	}
 
-	function renderGraph(view) {
-	  const graph = view.ui.center_chart.data('graph')
 
-	  if (typeof graph !== 'undefined') {
-	    const size = calculateGraphSize()
-
-	    graph.configure({
-	      width: size.width,
-	      height: size.height,
-	    })
-
-	    graph.render()
-	  }
-	}
-
-	const ChartData = Backbone.Model.extend({
-
-	})
+	const ChartData = Backbone.Model.extend({ })
 
 	const ChartView = Marionette.ItemView.extend({
 	  template: __webpack_require__(59),
 	  ui: {
-	    center_chart: '#center_chart',
+	    price_chart: '#price_chart',
+	    vol_chart: '#vol_chart',
 	    vol_axis: '#vol_axis',
 	    price_axis: '#price_axis',
 	    chart_loading: 'h1.chart_loading',
 	  },
 	  initialize: function() {
-	    this.resizeHandle = _.bind(renderGraph, undefined, this)
+	    this.graphs = []
+	    this.resizeHandler = _.bind(this.renderGraphs, this)
 	    $(window).on('resize', this.resizeHandler)
+	  },
+	  calculateGraphSize: function() {
+	    const width = this.$el.width() - 80
+	    return {
+	      width: width,
+	      height: Math.min(width*0.5, ($(window).height() - 70)*0.80)/2,
+	    }
+	  },
+	  renderGraphs: function() {
+	    const size = this.calculateGraphSize()
+
+	    _.forEach(this.graphs, graph => {
+	      graph.configure({
+	        width: size.width,
+	        height: size.height,
+	      })
+
+	      graph.render()
+	    })
 	  },
 	  onDestroy: function() {
 	    $(window).off('resize', this.resizeHandler)
@@ -48172,7 +48188,7 @@
 
 	var Handlebars = __webpack_require__(40);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div id=\"vol_axis\" class=\"chart_axis\"></div>\n<div id=\"price_axis\" class=\"chart_axis\"></div>\n<div id=\"center_chart\"></div>\n<div id=\"slider\"></div>\n";
+	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div class=\"chart_container\">\n  <div id=\"price_chart\" class=\"graph_body\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n</div>\n<div class=\"chart_container\">\n  <div id=\"vol_chart\" class=\"graph_body\"></div>\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n</div>\n";
 	},"useData":true});
 
 /***/ },

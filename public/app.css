@@ -12,28 +12,31 @@ span.loss { color: red }
 */
 
 .debug_json {
-    margin-top: 15px;
+  margin-top: 15px;
 }
-
-#chart_container {
-        position: relative;
-        font-family: Arial, Helvetica, sans-serif;
+#vol_chart .x_tick .title {
+  display: none;
+}
+.chart_container {
+  position: relative;
+  font-family: Arial, Helvetica, sans-serif;
 }
 #chart {
-        position: relative;
+  position: relative;
+}
+.graph_body {
+  left: 40px;
 }
 .rickshaw_graph .y_ticks {
-        left: 0;
+  left: 0px;
 }
 .chart_axis {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 40px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
 }
-#slider {
-        margin-left: 80px;
-}
+
 h1.chart_loading {
   padding: 40px 15px;
   text-align: center;

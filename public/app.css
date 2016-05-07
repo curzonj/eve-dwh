@@ -21,9 +21,6 @@ span.loss { color: red }
   position: relative;
   font-family: Arial, Helvetica, sans-serif;
 }
-#chart {
-  position: relative;
-}
 .graph_body {
   left: 40px;
 }

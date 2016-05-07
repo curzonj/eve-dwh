@@ -9988,7 +9988,6 @@
 	  const price_max = _.reduce(data, (result, row) => {
 	    return Math.max(result, row.sell_price_min, row.region_avg)
 	  }, Number.MIN_VALUE)
-	  console.log('min', price_min, 'max', price_max)
 
 	  const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
 	  const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max])
@@ -10002,12 +10001,12 @@
 	    stack: false,
 	    //interpolation: 'step-after',
 	    series: [{
-	      name: 'buy_price_max',
+	      name: 'buy_price_wavg',
 	      color: 'lightblue',
 	      scale: price_scale,
 	      data: extract(data, 'buy_price_max'),
 	    }, {
-	      name: 'sell_price_min',
+	      name: 'sell_price_wavg',
 	      color: 'steelblue',
 	      scale: price_scale,
 	      data: extract(data, 'sell_price_min'),
@@ -10041,8 +10040,33 @@
 	}
 
 	function buildVolumeChart(view, data) {
+	  function convertEMA(name) {
+	    const span = 5 * 24 * 60 * 60 // 5 days
+	    var prevT
+	    var avg
+
+	    _.forEach(data, row => {
+	      const v = row[name]
+	      if (v === undefined || v === null)
+	        return
+
+	      if (avg === undefined) {
+	        avg = v
+	      } else {
+	        const a = 1 - (Math.exp(-(row.unix_ts - prevT) / span))
+	        avg = a * v + (1 - a) * avg;
+	      }
+
+	      prevT = row.unix_ts
+	      row[name] = avg
+	    })
+	  }
+
+	  convertEMA('region_units')
+
 	  const vol_min = _.reduce(data, (result, row) => {
-	    return Math.min(result, row.buy_units, row.sell_units, row.region_units)
+	    function or(v) { return (_.isNumber(v) ? v : Number.MAX_VALUE) }
+	    return Math.min(result, or(row.buy_units), or(row.sell_units), or(row.region_units))
 	  }, Number.MAX_VALUE)
 	  const vol_max = _.reduce(data, (result, row) => {
 	    return Math.max(result, row.buy_units, row.sell_units, row.region_units)
@@ -10060,6 +10084,11 @@
 	    stack: false,
 	    //interpolation: 'step-after',
 	    series: [{
+	      name: 'region_units_EMA',
+	      color: 'lightgreen',
+	      scale: vol_scale,
+	      data: extract(data, 'region_units'),
+	    }, {
 	      name: 'buy_units',
 	      color: 'orange',
 	      scale: vol_scale,
@@ -10069,11 +10098,6 @@
 	      color: 'red',
 	      scale: vol_scale,
 	      data: extract(data, 'sell_units'),
-	    }, {
-	      name: 'region_units',
-	      color: 'lightgreen',
-	      scale: vol_scale,
-	      data: extract(data, 'region_units'),
 	    }, ],
 	  })
 
@@ -49079,7 +49103,7 @@
 
 	var Handlebars = __webpack_require__(41);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div class=\"chart_container\">\n  <div id=\"price_chart\" class=\"graph_body\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n</div>\n<div class=\"chart_container\">\n  <div id=\"vol_chart\" class=\"graph_body\"></div>\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n</div>\n";
+	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div>\n  <div class=\"chart_container\">\n    <div id=\"day_price_chart\" class=\"graph_body\"></div>\n    <div id=\"day_price_axis\" class=\"chart_axis\"></div>\n  </div>\n  <div class=\"chart_container\">\n    <div id=\"day_vol_chart\" class=\"graph_body\"></div>\n    <div id=\"day_vol_axis\" class=\"chart_axis\"></div>\n  </div>\n</div>\n\n<div class=\"chart_container\">\n  <div id=\"price_chart\" class=\"graph_body\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n</div>\n<div class=\"chart_container\">\n  <div id=\"vol_chart\" class=\"graph_body\"></div>\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n</div>\n";
 	},"useData":true});
 
 /***/ },

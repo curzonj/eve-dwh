@@ -22,11 +22,15 @@ function extract(data, name) {
 
 function buildPriceChart(view, data) {
   const price_min = _.reduce(data, (result, row) => {
-    return Math.min(result, row.buy_price_max)
+    return Math.min(
+      result,
+      row.buy_price_max || Number.MAX_VALUE,
+      row.region_avg || Number.MAX_VALUE)
   }, Number.MAX_VALUE)
   const price_max = _.reduce(data, (result, row) => {
-    return Math.max(result, row.sell_price_min)
+    return Math.max(result, row.sell_price_min, row.region_avg)
   }, Number.MIN_VALUE)
+  console.log('min', price_min, 'max', price_max)
 
   const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
   const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max])
@@ -38,7 +42,7 @@ function buildPriceChart(view, data) {
     height: size.height,
     renderer: 'line',
     stack: false,
-    interpolation: 'step-after',
+    //interpolation: 'step-after',
     series: [{
       name: 'buy_price_max',
       color: 'lightblue',
@@ -49,6 +53,11 @@ function buildPriceChart(view, data) {
       color: 'steelblue',
       scale: price_scale,
       data: extract(data, 'sell_price_min'),
+    }, {
+      name: 'region_avg',
+      color: 'lightgreen',
+      scale: price_scale,
+      data: extract(data, 'region_avg'),
     }, ],
   })
 
@@ -75,10 +84,10 @@ function buildPriceChart(view, data) {
 
 function buildVolumeChart(view, data) {
   const vol_min = _.reduce(data, (result, row) => {
-    return Math.min(result, row.buy_units, row.sell_units)
+    return Math.min(result, row.buy_units, row.sell_units, row.region_units)
   }, Number.MAX_VALUE)
   const vol_max = _.reduce(data, (result, row) => {
-    return Math.max(result, row.buy_units, row.sell_units)
+    return Math.max(result, row.buy_units, row.sell_units, row.region_units)
   }, Number.MIN_VALUE)
 
   const vol_scale_type = ((vol_max / vol_min) > 2 && vol_min > 0) ? 'log' : 'linear'
@@ -91,17 +100,22 @@ function buildVolumeChart(view, data) {
     height: size.height,
     renderer: 'line',
     stack: false,
-    interpolation: 'step-after',
+    //interpolation: 'step-after',
     series: [{
       name: 'buy_units',
-      color: 'pink',
+      color: 'orange',
       scale: vol_scale,
       data: extract(data, 'buy_units'),
     }, {
       name: 'sell_units',
-      color: 'orange',
+      color: 'red',
       scale: vol_scale,
       data: extract(data, 'sell_units'),
+    }, {
+      name: 'region_units',
+      color: 'lightgreen',
+      scale: vol_scale,
+      data: extract(data, 'region_units'),
     }, ],
   })
 
@@ -149,7 +163,7 @@ function loadTypeGraph(view) {
     },
   }).then(response => {
     var data = _.sortBy(response.data.historical, 'unix_ts')
-
+/*
     // We have to make sure that we don't have any volume data before
     // the first valid price data because the renderes won't lineup.
     const goodAt = _.findIndex(data, row => {
@@ -161,6 +175,7 @@ function loadTypeGraph(view) {
       view.ui.chart_loading.text('No data available for '+type_id)
       return
     }
+    */
 
     buildPriceChart(view, data)
     buildVolumeChart(view, data)

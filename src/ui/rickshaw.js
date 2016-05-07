@@ -24,11 +24,11 @@ function buildPriceChart(view, data) {
   const price_min = _.reduce(data, (result, row) => {
     return Math.min(
       result,
-      row.buy_price_max || Number.MAX_VALUE,
+      row.buy_price_wavg || Number.MAX_VALUE,
       row.region_avg || Number.MAX_VALUE)
   }, Number.MAX_VALUE)
   const price_max = _.reduce(data, (result, row) => {
-    return Math.max(result, row.sell_price_min, row.region_avg)
+    return Math.max(result, row.sell_price_wavg, row.region_avg)
   }, Number.MIN_VALUE)
 
   const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
@@ -46,12 +46,12 @@ function buildPriceChart(view, data) {
       name: 'buy_price_wavg',
       color: 'lightblue',
       scale: price_scale,
-      data: extract(data, 'buy_price_max'),
+      data: extract(data, 'buy_price_wavg'),
     }, {
       name: 'sell_price_wavg',
       color: 'steelblue',
       scale: price_scale,
-      data: extract(data, 'sell_price_min'),
+      data: extract(data, 'sell_price_wavg'),
     }, {
       name: 'region_avg',
       color: 'lightgreen',
@@ -191,6 +191,14 @@ function loadTypeGraph(view) {
       view.ui.chart_loading.text('No data available for '+type_id)
       return
     }
+
+    var historical_done = false
+    _.forEach(data, row => {
+      if (row.sell_price_wavg !== null)
+        historical_done = true
+      if (historical_done)
+        row.region_avg = null
+    })
 
     buildPriceChart(view, data)
     buildVolumeChart(view, data)

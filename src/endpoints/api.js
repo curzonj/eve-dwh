@@ -99,20 +99,16 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
     'day_sell_price_wavg_tx', 'day_avg_buy_units', 'day_avg_sell_units')
     .orderBy('date_of', 'asc')
     .then(data => {
-      var historical_done = false
       return _.map(data, row => {
         const data = {
           unix_ts: row.date_of.getTime()/1000,
-          region_avg: historical_done ? null : parseFloat(row.region_avg),
+          region_avg: parseFloat(row.region_avg),
           region_units: parseFloat(row.region_units),
-          buy_price_max: parseFloat(row.day_buy_price_wavg_tx),
+          buy_price_wavg: parseFloat(row.day_buy_price_wavg_tx),
           buy_units: parseFloat(row.day_avg_buy_units),
-          sell_price_min: parseFloat(row.day_sell_price_wavg_tx),
+          sell_price_wavg: parseFloat(row.day_sell_price_wavg_tx),
           sell_units: parseFloat(row.day_avg_sell_units),
         }
-
-        if (row.day_sell_price_wavg_tx !== null)
-          historical_done = true
 
         return data
       })

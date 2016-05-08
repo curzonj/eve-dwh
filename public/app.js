@@ -9983,16 +9983,18 @@
 	      const region_id = this.get('region_id')
 	      const station_id = this.get('station_id')
 
-	      this.set({ requestState: 'in_progress' })
+	      this.set({
+	        requestState: 'in_progress',
+	      })
 
 	      bluebird.all([
-	        axios.get('/api/v1/types/'+type_id+'/market/stats', {
+	        axios.get('/api/v1/types/' + type_id + '/market/stats', {
 	          params: {
 	            region_id: region_id,
 	            station_id: station_id,
 	          },
 	        }).then(response => response.data),
-	        axios.get('/api/v1/types/'+type_id+'/market/buy_sell_series', {
+	        axios.get('/api/v1/types/' + type_id + '/market/buy_sell_series', {
 	          params: {
 	            region_id: region_id,
 	            station_id: station_id,
@@ -10023,14 +10025,21 @@
 	            const v = row[name]
 	            list.push(v)
 	            if (list.length > period)
-	              list.splice(0,1)
+	              list.splice(0, 1)
 
-	            var sum = _.reduce(list, (acc, v) => { return acc + v })
+	            var sum = _.reduce(list, (acc, v) => {
+	              return acc + v
+	            })
 	            row[name] = sum / list.length
 	          })
 	        }
 
 	        convertSMA(timeseries.historical, 'region_units', 10)
+
+	        if (timeseries.recent.length > 1000) {
+	          convertSMA(timeseries.recent, 'buy_price_max', 4)
+	          convertSMA(timeseries.recent, 'sell_price_min', 4)
+	        }
 
 	        this.set({
 	          requestState: 'complete',
@@ -10066,7 +10075,7 @@
 	      const width = el.width() - 80
 	      return {
 	        width: width,
-	        height: Math.min(width*0.5, ($(window).height() - 70)*0.80)/2,
+	        height: Math.min(width * 0.5, ($(window).height() - 70) * 0.80) / 2,
 	      }
 	    }
 
@@ -10074,10 +10083,12 @@
 	      return _.compact(_.map(data, r => {
 	        const v = r[name]
 	        if (_.isNumber(v))
-	          return { x: r.unix_ts, y: v }
+	          return {
+	            x: r.unix_ts,
+	            y: v,
+	          }
 	      }))
 	    }
-
 	    const view = this
 	    const series_names = _.keys(series)
 	    const domain_min = _.reduce(data, (result, row) => {
@@ -10109,6 +10120,32 @@
 	      }),
 	    })
 
+	    function customTickFormat(y) {
+	      function rif(n) {
+	        if (Number.isInteger(y)) {
+	          return y
+	        } else {
+	          return y.toFixed(1)
+	        }
+	      }
+	      var abs_y = Math.abs(y);
+	      if (abs_y >= 1000000000000) {
+	        return y / 1000000000000 + 'T'
+	      } else if (abs_y >= 1000000000) {
+	        return y / 1000000000 + 'B'
+	      } else if (abs_y >= 1000000) {
+	        return y / 1000000 + 'M'
+	      } else if (abs_y >= 1000) {
+	        return y / 1000 + 'K'
+	      } else if (abs_y < 1 && y > 0) {
+	        return y.toFixed(2)
+	      } else if (abs_y === 0) {
+	        return ''
+	      } else {
+	        return rif(y)
+	      }
+	    }
+
 	    new Rickshaw.Graph.Axis.Time({
 	      graph: graph,
 	    })
@@ -10116,7 +10153,8 @@
 	      graph: graph,
 	      orientation: 'left',
 	      scale: scale,
-	      tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+	      ticks: 4,
+	      tickFormat: customTickFormat,
 	      element: $('.chart_axis', el).get(0),
 	    })
 	    new Rickshaw.Graph.HoverDetail({
@@ -10140,65 +10178,61 @@
 	  onAttach: function() {
 	    const recent = this.model.get('recent')
 	    this.buildChart(recent,
-	      this.$('#day_charts .price.chart_container'),
-	      {
+	      this.$('#day_charts .price.chart_container'), {
 	        buy_price_max: {
-	          name: 'buy_price_max',
+	          name: 'Buy Price' + (recent.length > 1000 ? ' 20m SMA' : ''),
 	          color: 'lightblue',
 	        },
 	        sell_price_min: {
-	          name: 'sell_price_min',
+	          name: 'Sell Price' + (recent.length > 1000 ? ' 20m SMA' : ''),
 	          color: 'steelblue',
 	        },
 	      })
 	    this.buildChart(recent,
-	      this.$('#day_charts .volume.chart_container'),
-	      {
+	      this.$('#day_charts .volume.chart_container'), {
 	        buy_units: {
-	          name: 'buy_units',
+	          name: 'Buy Order Units',
 	          color: 'orange',
 	        },
 	        sell_units: {
-	          name: 'sell_units',
+	          name: 'Sell Order Units',
 	          color: 'red',
 	        },
 	        region_units: {
-	          name: 'region_units',
+	          name: 'Region Quanity Sold',
 	          color: 'lightgreen',
 	        },
 	      })
 
 	    const historical = this.model.get('historical')
 	    this.buildChart(historical,
-	      this.$('#historical_charts .price.chart_container'),
-	      {
+	      this.$('#historical_charts .price.chart_container'), {
 	        buy_price_wavg: {
-	          name: 'buy_price_wavg',
+	          name: 'Buy Order Price Wavg',
 	          color: 'lightblue',
 	        },
 	        sell_price_wavg: {
-	          name: 'sell_price_wavg',
+	          name: 'Sell Order Price Wavg',
 	          color: 'steelblue',
 	        },
 	        region_avg: {
-	          name: 'region_avg',
+	          name: 'Region Avg',
 	          color: 'lightgreen',
 	        },
 	      })
 
 	    this.buildChart(historical,
-	      this.$('#historical_charts .volume.chart_container'),
-	      {
+	      this.$('#historical_charts .volume.chart_container'), {
 	        region_units: {
-	          name: 'region_units_SMA',
+	          name: 'Region Quantity 10d SMA',
 	          color: 'lightgreen',
 	        },
 	        buy_units: {
-	          name: 'buy_units',
+	          name: 'Buy Order Units',
 	          color: 'orange',
 	        },
 	        sell_units: {
-	          name: 'sell_units',
+	          name: 'Sell Order Units',
 	          color: 'red',
 	        },
 	      })
@@ -10221,16 +10255,20 @@
 	        this.ui.chart_loading.text('Loading the chart data...').show()
 	        this.getRegion('contents').empty()
 	      } else if (_.isEmpty(this.model.get('historical'))) {
-	        this.ui.chart_loading.text('No data available for '+this.model.get('type_id')).show()
+	        this.ui.chart_loading.text('No data available for ' + this.model.get('type_id')).show()
 	      } else {
 	        this.ui.chart_loading.hide()
-	        this.showChildView('contents', new ChartDashboard({ model: this.model }))
+	        this.showChildView('contents', new ChartDashboard({
+	          model: this.model,
+	        }))
 	      }
 	    },
 	  },
 	  initialize: function() {
 	    this.model = new ChartData()
-	    this.nav_view = new ChartNav({ model: this.model })
+	    this.nav_view = new ChartNav({
+	      model: this.model,
+	    })
 	  },
 	  onRender: function() {
 	    // Set this here so that it triggers a change, but only
@@ -10238,7 +10276,7 @@
 	    this.model.set({
 	      type_id: 34,
 	      region_id: 10000002,
-	      station_id:  60003760,
+	      station_id: 60003760,
 	    })
 	  },
 	})

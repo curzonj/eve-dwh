@@ -10093,7 +10093,7 @@
 	    const series_names = _.keys(series)
 	    const domain_min = _.reduce(data, (result, row) => {
 	      return Math.min.apply(Math, _.concat(_.map(series_names, n => {
-	        return row[n] || Number.MAX_VALUE
+	        return _.isNumber(row[n]) ? row[n] : Number.MAX_VALUE
 	      }), result))
 	    }, Number.MAX_VALUE)
 	    const domain_max = _.reduce(data, (result, row) => {
@@ -10102,7 +10102,7 @@
 	      }), result))
 	    }, Number.MIN_VALUE)
 
-	    const scale_type = ((domain_max / domain_min) > 2 && domain_min > 0) ? 'log' : 'linear'
+	    const scale_type = ((domain_max / domain_min) > 5 && domain_min > 0) ? 'log' : 'linear'
 	    const scale = d3.scale[scale_type]().domain([domain_min, domain_max])
 
 	    const size = calculateGraphSize()

@@ -54,12 +54,12 @@
 	global.App = app
 
 	const Views = {
-	  rickshaw: __webpack_require__(9),
+	  charts: __webpack_require__(9),
 	}
 
 	const RouterClass = Backbone.Router.extend({
 	  routes: {
-	    stats:    'rickshaw',
+	    stats:    'charts',
 	    orders:   'orders',
 	    '*path':  'defaultRoute',
 	  },
@@ -68,9 +68,9 @@
 	    this.navigate('stats', { trigger: true })
 	  },
 
-	  orders: __webpack_require__(61),
-	  rickshaw: function() {
-	    app.mainRegion.show(new Views.rickshaw())
+	  orders: __webpack_require__(62),
+	  charts: function() {
+	    app.mainRegion.show(new Views.charts())
 	  },
 	})
 
@@ -9970,218 +9970,157 @@
 
 	const ChartNav = __webpack_require__(38)
 
-	function extract(data, name) {
-	  return _.compact(_.map(data, r => {
-	    const v = r[name]
-	    if (_.isNumber(v))
-	      return { x: r.unix_ts, y: v }
-	  }))
-	}
-
-	function buildPriceChart(view, data) {
-	  const price_min = _.reduce(data, (result, row) => {
-	    return Math.min(
-	      result,
-	      row.buy_price_wavg || Number.MAX_VALUE,
-	      row.region_avg || Number.MAX_VALUE)
-	  }, Number.MAX_VALUE)
-	  const price_max = _.reduce(data, (result, row) => {
-	    return Math.max(result, row.sell_price_wavg, row.region_avg)
-	  }, Number.MIN_VALUE)
-
-	  const price_scale_type = ((price_max / price_min) > 2 && price_min > 0) ? 'log' : 'linear'
-	  const price_scale = d3.scale[price_scale_type]().domain([price_min, price_max])
-
-	  const size = view.calculateGraphSize()
-	  const graph = new Rickshaw.Graph({
-	    element: view.$('#price_chart').get(0),
-	    width: size.width,
-	    height: size.height,
-	    renderer: 'line',
-	    stack: false,
-	    //interpolation: 'step-after',
-	    series: [{
-	      name: 'buy_price_wavg',
-	      color: 'lightblue',
-	      scale: price_scale,
-	      data: extract(data, 'buy_price_wavg'),
-	    }, {
-	      name: 'sell_price_wavg',
-	      color: 'steelblue',
-	      scale: price_scale,
-	      data: extract(data, 'sell_price_wavg'),
-	    }, {
-	      name: 'region_avg',
-	      color: 'lightgreen',
-	      scale: price_scale,
-	      data: extract(data, 'region_avg'),
-	    }, ],
-	  })
-
-	  new Rickshaw.Graph.Axis.Time({
-	    graph: graph,
-	  })
-	  new Rickshaw.Graph.Axis.Y.Scaled({
-	    graph: graph,
-	    orientation: 'left',
-	    scale: price_scale,
-	    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-	    element: view.$('#price_axis').get(0),
-	  })
-	  new Rickshaw.Graph.HoverDetail({
-	    graph: graph,
-	    formatter: function(series, x, y) {
-	      return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
-	    },
-	  })
-
-	  view.graphs.push(graph)
-	  return graph
-	}
-
-	function buildVolumeChart(view, data) {
-	  function convertSMA(name, period) {
-	    var list = []
-
-	    _.forEach(data, row => {
-	      const v = row[name]
-	      list.push(v)
-	      if (list.length > period)
-	        list.splice(0,1)
-
-	      var sum = _.reduce(list, (acc, v) => { return acc + v })
-	      row[name] = sum / list.length
-	    })
-	  }
-
-	  convertSMA('region_units', 10)
-
-	  const vol_min = _.reduce(data, (result, row) => {
-	    function or(v) { return (_.isNumber(v) ? v : Number.MAX_VALUE) }
-	    return Math.min(result, or(row.buy_units), or(row.sell_units), or(row.region_units))
-	  }, Number.MAX_VALUE)
-	  const vol_max = _.reduce(data, (result, row) => {
-	    return Math.max(result, row.buy_units, row.sell_units, row.region_units)
-	  }, Number.MIN_VALUE)
-
-	  const vol_scale_type = ((vol_max / vol_min) > 2 && vol_min > 0) ? 'log' : 'linear'
-	  const vol_scale = d3.scale[vol_scale_type]().domain([vol_min, vol_max])
-
-	  const size = view.calculateGraphSize()
-	  const graph = new Rickshaw.Graph({
-	    element: view.$('#vol_chart').get(0),
-	    width: size.width,
-	    height: size.height,
-	    renderer: 'line',
-	    stack: false,
-	    //interpolation: 'step-after',
-	    series: [{
-	      name: 'region_units_SMA',
-	      color: 'lightgreen',
-	      scale: vol_scale,
-	      data: extract(data, 'region_units'),
-	    }, {
-	      name: 'buy_units',
-	      color: 'orange',
-	      scale: vol_scale,
-	      data: extract(data, 'buy_units'),
-	    }, {
-	      name: 'sell_units',
-	      color: 'red',
-	      scale: vol_scale,
-	      data: extract(data, 'sell_units'),
-	    }, ],
-	  })
-
-	  new Rickshaw.Graph.Axis.Time({
-	    graph: graph,
-	  })
-
-	  new Rickshaw.Graph.Axis.Y.Scaled({
-	    graph: graph,
-	    orientation: 'left',
-	    scale: vol_scale,
-	    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
-	    element: view.$('#vol_axis').get(0),
-	  })
-	  new Rickshaw.Graph.HoverDetail({
-	    graph: graph,
-	    formatter: function(series, x, y) {
-	      return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
-	    },
-	  })
-
-	  view.graphs.push(graph)
-
-	  return graph
-	}
-
-	function loadTypeGraph(view) {
-	  const type_id = view.model.get('type_id')
-	  const region_id = view.model.get('region_id')
-	  const station_id = view.model.get('station_id')
-
-	  axios.get('/api/v1/types/'+type_id+'/market/stats', {
-	    params: {
-	      region_id: region_id,
-	      station_id: station_id,
-	    },
-	  }).then(response => {
-	    view.$el.append('<pre class="debug_json">'+JSON.stringify(response.data, null, 2)+'</pre>')
-	  })
-
-	  axios.get('/api/v1/types/'+type_id+'/market/buy_sell_series', {
-	    params: {
-	      region_id: region_id,
-	      station_id: station_id,
-	    },
-	  }).then(response => {
-	    var data = _.sortBy(response.data.historical, 'unix_ts')
-	    if (_.isEmpty(data)) {
-	      view.ui.chart_loading.text('No data available for '+type_id)
-	      return
-	    }
-
-	    var historical_done = false
-	    _.forEach(data, row => {
-	      if (row.sell_price_wavg !== null)
-	        historical_done = true
-	      if (historical_done)
-	        row.region_avg = null
-	    })
-
-	    buildPriceChart(view, data)
-	    buildVolumeChart(view, data)
-
-	    view.ui.chart_loading.hide()
-	    view.renderGraphs()
-	  })
-	}
-
-
-	const ChartData = Backbone.Model.extend({ })
-
-	const ChartView = Marionette.View.extend({
-	  template: __webpack_require__(60),
-	  ui: {
-	    chart_loading: 'h1.chart_loading',
-	  },
+	const ChartData = Backbone.Model.extend({
 	  initialize: function() {
-	    this.graphs = []
+	    this.listenTo(this, 'change', this.requestData);
+	  },
+	  requestData: function() {
+	    if (_.has(this.changed, 'type_id') || _.has(this.changed, 'station_id')) {
+	      const type_id = this.get('type_id')
+	      const region_id = this.get('region_id')
+	      const station_id = this.get('station_id')
+
+	      this.set({ requestState: 'in_progress' })
+
+	      bluebird.all([
+	        axios.get('/api/v1/types/'+type_id+'/market/stats', {
+	          params: {
+	            region_id: region_id,
+	            station_id: station_id,
+	          },
+	        }).then(response => response.data),
+	        axios.get('/api/v1/types/'+type_id+'/market/buy_sell_series', {
+	          params: {
+	            region_id: region_id,
+	            station_id: station_id,
+	          },
+	        }).then(response => {
+	          var data = _.sortBy(response.data.historical, 'unix_ts')
+	          if (!_.isEmpty(data)) {
+	            var historical_done = false
+	            _.forEach(data, row => {
+	              if (row.sell_price_wavg !== null)
+	                historical_done = true
+	              if (historical_done)
+	                row.region_avg = null
+	            })
+	          }
+
+	          return data
+	        }),
+	      ]).spread((stats, historical) => {
+	        function convertSMA(data, name, period) {
+	          var list = []
+
+	          _.forEach(data, row => {
+	            const v = row[name]
+	            list.push(v)
+	            if (list.length > period)
+	              list.splice(0,1)
+
+	            var sum = _.reduce(list, (acc, v) => { return acc + v })
+	            row[name] = sum / list.length
+	          })
+	        }
+
+	        convertSMA(historical, 'region_units', 10)
+
+	        this.set({
+	          requestState: 'complete',
+	          stats: stats,
+	          historical: historical,
+	        })
+	      })
+	    }
+	  },
+	})
+
+	const ChartDashboard = Marionette.View.extend({
+	  template: __webpack_require__(60),
+	  initialize: function() {
+	    this.renderFuncs = []
 	    this.resizeHandler = _.bind(this.renderGraphs, this)
 	    $(window).on('resize', this.resizeHandler)
 	  },
-	  calculateGraphSize: function() {
-	    const width = this.$el.width() - 80
+	  renderGraphs: function() {
+	    _.forEach(this.renderFuncs, (fn) => fn())
+	  },
+	  onDestroy: function() {
+	    $(window).off('resize', this.resizeHandler)
+	  },
+	  serializeModel: function() {
 	    return {
-	      width: width,
-	      height: Math.min(width*0.5, ($(window).height() - 70)*0.80)/2,
+	      stats: JSON.stringify(this.model.get('stats'), null, 2),
 	    }
 	  },
-	  renderGraphs: function() {
-	    const size = this.calculateGraphSize()
+	  buildChart: function(data, el, series) {
+	    function calculateGraphSize() {
+	      const width = el.width() - 80
+	      return {
+	        width: width,
+	        height: Math.min(width*0.5, ($(window).height() - 70)*0.80)/2,
+	      }
+	    }
 
-	    _.forEach(this.graphs, graph => {
+	    function extract(name) {
+	      return _.compact(_.map(data, r => {
+	        const v = r[name]
+	        if (_.isNumber(v))
+	          return { x: r.unix_ts, y: v }
+	      }))
+	    }
+
+	    const view = this
+	    const series_names = _.keys(series)
+	    const domain_min = _.reduce(data, (result, row) => {
+	      return Math.min.apply(Math, _.concat(_.map(series_names, n => {
+	        return row[n] || Number.MAX_VALUE
+	      }), result))
+	    }, Number.MAX_VALUE)
+	    const domain_max = _.reduce(data, (result, row) => {
+	      return Math.max.apply(Math, _.concat(_.map(series_names, n => {
+	        return row[n] || Number.MIN_VALUE
+	      }), result))
+	    }, Number.MIN_VALUE)
+
+	    const scale_type = ((domain_max / domain_min) > 2 && domain_min > 0) ? 'log' : 'linear'
+	    const scale = d3.scale[scale_type]().domain([domain_min, domain_max])
+
+	    const size = calculateGraphSize()
+	    const graph = new Rickshaw.Graph({
+	      element: $('.graph_body', el).get(0),
+	      width: size.width,
+	      height: size.height,
+	      renderer: 'line',
+	      stack: false,
+	      series: _.map(series, (value, key) => {
+	        return _.assign({
+	          scale: scale,
+	          data: extract(key),
+	        }, value)
+	      }),
+	    })
+
+	    new Rickshaw.Graph.Axis.Time({
+	      graph: graph,
+	    })
+	    new Rickshaw.Graph.Axis.Y.Scaled({
+	      graph: graph,
+	      orientation: 'left',
+	      scale: scale,
+	      tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+	      element: $('.chart_axis', el).get(0),
+	    })
+	    new Rickshaw.Graph.HoverDetail({
+	      graph: graph,
+	      formatter: function(series, x, y) {
+	        return series.name + ': ' + y.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+	      },
+	    })
+
+	    this.renderFuncs.push(function() {
+	      const size = calculateGraphSize()
+
 	      graph.configure({
 	        width: size.width,
 	        height: size.height,
@@ -10190,22 +10129,65 @@
 	      graph.render()
 	    })
 	  },
-	  onDestroy: function() {
-	    $(window).off('resize', this.resizeHandler)
-	  },
-	  onRender: function() {
-	    loadTypeGraph(this)
+	  onAttach: function() {
+	    const historical = this.model.get('historical')
+	    this.buildChart(historical,
+	      this.$('#historical_charts .price.chart_container'),
+	      {
+	        buy_price_wavg: {
+	          name: 'buy_price_wavg',
+	          color: 'lightblue',
+	        },
+	        sell_price_wavg: {
+	          name: 'sell_price_wavg',
+	          color: 'steelblue',
+	        },
+	        region_avg: {
+	          name: 'region_avg',
+	          color: 'lightgreen',
+	        },
+	      })
+
+	    this.buildChart(historical,
+	      this.$('#historical_charts .volume.chart_container'),
+	      {
+	        region_units: {
+	          name: 'region_units_SMA',
+	          color: 'lightgreen',
+	        },
+	        buy_units: {
+	          name: 'buy_units',
+	          color: 'orange',
+	        },
+	        sell_units: {
+	          name: 'sell_units',
+	          color: 'red',
+	        },
+	      })
+
+	    this.renderGraphs()
 	  },
 	})
 
 	module.exports = Marionette.View.extend({
-	  template: () => '<div id="chart_container"></div>',
+	  template: __webpack_require__(61),
 	  regions: {
-	    chart: '#chart_container',
+	    contents: 'div',
+	  },
+	  ui: {
+	    chart_loading: 'h1.chart_loading',
 	  },
 	  modelEvents: {
-	    change: function() {
-	      this.showChildView('chart', new ChartView({ model: this.model }))
+	    'change:requestState': function() {
+	      if (this.model.get('requestState') == 'in_progress') {
+	        this.ui.chart_loading.text('Loading the chart data...').show()
+	        this.getRegion('contents').empty()
+	      } else if (_.isEmpty(this.model.get('historical'))) {
+	        this.ui.chart_loading.text('No data available for '+this.model.get('type_id')).show()
+	      } else {
+	        this.ui.chart_loading.hide()
+	        this.showChildView('contents', new ChartDashboard({ model: this.model }))
+	      }
 	    },
 	  },
 	  initialize: function() {
@@ -49103,24 +49085,37 @@
 
 	var Handlebars = __webpack_require__(41);
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
-	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div>\n  <div class=\"chart_container\">\n    <div id=\"day_price_chart\" class=\"graph_body\"></div>\n    <div id=\"day_price_axis\" class=\"chart_axis\"></div>\n  </div>\n  <div class=\"chart_container\">\n    <div id=\"day_vol_chart\" class=\"graph_body\"></div>\n    <div id=\"day_vol_axis\" class=\"chart_axis\"></div>\n  </div>\n</div>\n\n<div class=\"chart_container\">\n  <div id=\"price_chart\" class=\"graph_body\"></div>\n  <div id=\"price_axis\" class=\"chart_axis\"></div>\n</div>\n<div class=\"chart_container\">\n  <div id=\"vol_chart\" class=\"graph_body\"></div>\n  <div id=\"vol_axis\" class=\"chart_axis\"></div>\n</div>\n";
+	    var helper;
+
+	  return "<div class=\"col-md-6\">\n  <div id=\"day_charts\">\n  </div>\n\n  <div id=\"historical_charts\">\n    <div class=\"price chart_container\">\n      <div class=\"price_chart graph_body\"></div>\n      <div class=\"price_axis chart_axis\"></div>\n    </div>\n    <div class=\"volume chart_container\">\n      <div class=\"vol_chart hide_time graph_body\"></div>\n      <div class=\"vol_axis chart_axis\"></div>\n    </div>\n  </div>\n</div>\n\n<div class=\"col-md-6\">\n  <div id=\"type_stats\">\n    <pre class=\"debug_json\">"
+	    + container.escapeExpression(((helper = (helper = helpers.stats || (depth0 != null ? depth0.stats : depth0)) != null ? helper : helpers.helperMissing),(typeof helper === "function" ? helper.call(depth0 != null ? depth0 : {},{"name":"stats","hash":{},"data":data}) : helper)))
+	    + "</pre>\n  </div>\n</div>\n";
 	},"useData":true});
 
 /***/ },
 /* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var Handlebars = __webpack_require__(41);
+	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+	    return "<h1 class=\"chart_loading\">Loading the chart data...</h1>\n<div>\n</div>\n";
+	},"useData":true});
+
+/***/ },
+/* 62 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
 	module.exports = function() {
-	  __webpack_require__(62)
+	  __webpack_require__(63)
 
 	  var $ = global.$
-	  var io = __webpack_require__(63)
+	  var io = __webpack_require__(64)
 	  var _ = __webpack_require__(13)
-	  var handlebars = __webpack_require__(109)
+	  var handlebars = __webpack_require__(110)
 
-	  $('div#content').html(__webpack_require__(110)())
+	  $('div#content').html(__webpack_require__(111)())
 	  $('div#per-page-navbar').html('')
 
 	  document.title = 'Order Status'
@@ -49134,7 +49129,7 @@
 	  function reportSocketError(e) {
 	    console.log(e)
 	    if ($('div#conn-error-alert').length === 0) {
-	      $('div#alerts').append(__webpack_require__(111))
+	      $('div#alerts').append(__webpack_require__(112))
 	    }
 	  }
 
@@ -49150,7 +49145,7 @@
 	    var notify = false
 
 	    if ((msg.buy === true && msg.price < msg.buy_price_max) || (msg.buy === false && msg.price > msg.sell_price_min)) {
-	      var dom = $(__webpack_require__(112)({
+	      var dom = $(__webpack_require__(113)({
 	        key: key,
 	        term: term,
 	        type_id: msg.type_id,
@@ -49210,7 +49205,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 62 */
+/* 63 */
 /***/ function(module, exports) {
 
 	/**
@@ -49410,7 +49405,7 @@
 
 
 /***/ },
-/* 63 */
+/* 64 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -49418,10 +49413,10 @@
 	 * Module dependencies.
 	 */
 
-	var url = __webpack_require__(64);
-	var parser = __webpack_require__(69);
-	var Manager = __webpack_require__(76);
-	var debug = __webpack_require__(66)('socket.io-client');
+	var url = __webpack_require__(65);
+	var parser = __webpack_require__(70);
+	var Manager = __webpack_require__(77);
+	var debug = __webpack_require__(67)('socket.io-client');
 
 	/**
 	 * Module exports.
@@ -49503,12 +49498,12 @@
 	 * @api public
 	 */
 
-	exports.Manager = __webpack_require__(76);
-	exports.Socket = __webpack_require__(102);
+	exports.Manager = __webpack_require__(77);
+	exports.Socket = __webpack_require__(103);
 
 
 /***/ },
-/* 64 */
+/* 65 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -49516,8 +49511,8 @@
 	 * Module dependencies.
 	 */
 
-	var parseuri = __webpack_require__(65);
-	var debug = __webpack_require__(66)('socket.io-client:url');
+	var parseuri = __webpack_require__(66);
+	var debug = __webpack_require__(67)('socket.io-client:url');
 
 	/**
 	 * Module exports.
@@ -49591,7 +49586,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 65 */
+/* 66 */
 /***/ function(module, exports) {
 
 	/**
@@ -49636,7 +49631,7 @@
 
 
 /***/ },
-/* 66 */
+/* 67 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -49646,7 +49641,7 @@
 	 * Expose `debug()` as the module.
 	 */
 
-	exports = module.exports = __webpack_require__(67);
+	exports = module.exports = __webpack_require__(68);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -49810,7 +49805,7 @@
 
 
 /***/ },
-/* 67 */
+/* 68 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -49826,7 +49821,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(68);
+	exports.humanize = __webpack_require__(69);
 
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -50013,7 +50008,7 @@
 
 
 /***/ },
-/* 68 */
+/* 69 */
 /***/ function(module, exports) {
 
 	/**
@@ -50144,7 +50139,7 @@
 
 
 /***/ },
-/* 69 */
+/* 70 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -50152,12 +50147,12 @@
 	 * Module dependencies.
 	 */
 
-	var debug = __webpack_require__(66)('socket.io-parser');
-	var json = __webpack_require__(70);
-	var isArray = __webpack_require__(72);
-	var Emitter = __webpack_require__(73);
-	var binary = __webpack_require__(74);
-	var isBuf = __webpack_require__(75);
+	var debug = __webpack_require__(67)('socket.io-parser');
+	var json = __webpack_require__(71);
+	var isArray = __webpack_require__(73);
+	var Emitter = __webpack_require__(74);
+	var binary = __webpack_require__(75);
+	var isBuf = __webpack_require__(76);
 
 	/**
 	 * Protocol version.
@@ -50550,14 +50545,14 @@
 
 
 /***/ },
-/* 70 */
+/* 71 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(71);
+	  var isLoader = "function" === "function" && __webpack_require__(72);
 
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -51459,7 +51454,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)(module), (function() { return this; }())))
 
 /***/ },
-/* 71 */
+/* 72 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -51467,7 +51462,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 72 */
+/* 73 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -51476,7 +51471,7 @@
 
 
 /***/ },
-/* 73 */
+/* 74 */
 /***/ function(module, exports) {
 
 	
@@ -51646,7 +51641,7 @@
 
 
 /***/ },
-/* 74 */
+/* 75 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*global Blob,File*/
@@ -51655,8 +51650,8 @@
 	 * Module requirements
 	 */
 
-	var isArray = __webpack_require__(72);
-	var isBuf = __webpack_require__(75);
+	var isArray = __webpack_require__(73);
+	var isBuf = __webpack_require__(76);
 
 	/**
 	 * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
@@ -51794,7 +51789,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 75 */
+/* 76 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -51814,7 +51809,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 76 */
+/* 77 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -51822,15 +51817,15 @@
 	 * Module dependencies.
 	 */
 
-	var eio = __webpack_require__(77);
-	var Socket = __webpack_require__(102);
-	var Emitter = __webpack_require__(103);
-	var parser = __webpack_require__(69);
-	var on = __webpack_require__(105);
-	var bind = __webpack_require__(106);
-	var debug = __webpack_require__(66)('socket.io-client:manager');
-	var indexOf = __webpack_require__(100);
-	var Backoff = __webpack_require__(108);
+	var eio = __webpack_require__(78);
+	var Socket = __webpack_require__(103);
+	var Emitter = __webpack_require__(104);
+	var parser = __webpack_require__(70);
+	var on = __webpack_require__(106);
+	var bind = __webpack_require__(107);
+	var debug = __webpack_require__(67)('socket.io-client:manager');
+	var indexOf = __webpack_require__(101);
+	var Backoff = __webpack_require__(109);
 
 	/**
 	 * IE6+ hasOwnProperty
@@ -52377,19 +52372,19 @@
 
 
 /***/ },
-/* 77 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	module.exports =  __webpack_require__(78);
-
-
-/***/ },
 /* 78 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(79);
+	module.exports =  __webpack_require__(79);
+
+
+/***/ },
+/* 79 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	module.exports = __webpack_require__(80);
 
 	/**
 	 * Exports parser
@@ -52397,25 +52392,25 @@
 	 * @api public
 	 *
 	 */
-	module.exports.parser = __webpack_require__(86);
+	module.exports.parser = __webpack_require__(87);
 
 
 /***/ },
-/* 79 */
+/* 80 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var transports = __webpack_require__(80);
-	var Emitter = __webpack_require__(73);
-	var debug = __webpack_require__(66)('engine.io-client:socket');
-	var index = __webpack_require__(100);
-	var parser = __webpack_require__(86);
-	var parseuri = __webpack_require__(65);
-	var parsejson = __webpack_require__(101);
-	var parseqs = __webpack_require__(94);
+	var transports = __webpack_require__(81);
+	var Emitter = __webpack_require__(74);
+	var debug = __webpack_require__(67)('engine.io-client:socket');
+	var index = __webpack_require__(101);
+	var parser = __webpack_require__(87);
+	var parseuri = __webpack_require__(66);
+	var parsejson = __webpack_require__(102);
+	var parseqs = __webpack_require__(95);
 
 	/**
 	 * Module exports.
@@ -52539,9 +52534,9 @@
 	 */
 
 	Socket.Socket = Socket;
-	Socket.Transport = __webpack_require__(85);
-	Socket.transports = __webpack_require__(80);
-	Socket.parser = __webpack_require__(86);
+	Socket.Transport = __webpack_require__(86);
+	Socket.transports = __webpack_require__(81);
+	Socket.parser = __webpack_require__(87);
 
 	/**
 	 * Creates transport of the given type.
@@ -53136,17 +53131,17 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 80 */
+/* 81 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies
 	 */
 
-	var XMLHttpRequest = __webpack_require__(81);
-	var XHR = __webpack_require__(83);
-	var JSONP = __webpack_require__(97);
-	var websocket = __webpack_require__(98);
+	var XMLHttpRequest = __webpack_require__(82);
+	var XHR = __webpack_require__(84);
+	var JSONP = __webpack_require__(98);
+	var websocket = __webpack_require__(99);
 
 	/**
 	 * Export transports.
@@ -53196,11 +53191,11 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 81 */
+/* 82 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// browser shim for xmlhttprequest module
-	var hasCORS = __webpack_require__(82);
+	var hasCORS = __webpack_require__(83);
 
 	module.exports = function(opts) {
 	  var xdomain = opts.xdomain;
@@ -53238,7 +53233,7 @@
 
 
 /***/ },
-/* 82 */
+/* 83 */
 /***/ function(module, exports) {
 
 	
@@ -53261,18 +53256,18 @@
 
 
 /***/ },
-/* 83 */
+/* 84 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module requirements.
 	 */
 
-	var XMLHttpRequest = __webpack_require__(81);
-	var Polling = __webpack_require__(84);
-	var Emitter = __webpack_require__(73);
-	var inherit = __webpack_require__(95);
-	var debug = __webpack_require__(66)('engine.io-client:polling-xhr');
+	var XMLHttpRequest = __webpack_require__(82);
+	var Polling = __webpack_require__(85);
+	var Emitter = __webpack_require__(74);
+	var inherit = __webpack_require__(96);
+	var debug = __webpack_require__(67)('engine.io-client:polling-xhr');
 
 	/**
 	 * Module exports.
@@ -53680,19 +53675,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 84 */
+/* 85 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var Transport = __webpack_require__(85);
-	var parseqs = __webpack_require__(94);
-	var parser = __webpack_require__(86);
-	var inherit = __webpack_require__(95);
-	var yeast = __webpack_require__(96);
-	var debug = __webpack_require__(66)('engine.io-client:polling');
+	var Transport = __webpack_require__(86);
+	var parseqs = __webpack_require__(95);
+	var parser = __webpack_require__(87);
+	var inherit = __webpack_require__(96);
+	var yeast = __webpack_require__(97);
+	var debug = __webpack_require__(67)('engine.io-client:polling');
 
 	/**
 	 * Module exports.
@@ -53705,7 +53700,7 @@
 	 */
 
 	var hasXHR2 = (function() {
-	  var XMLHttpRequest = __webpack_require__(81);
+	  var XMLHttpRequest = __webpack_require__(82);
 	  var xhr = new XMLHttpRequest({ xdomain: false });
 	  return null != xhr.responseType;
 	})();
@@ -53933,15 +53928,15 @@
 
 
 /***/ },
-/* 85 */
+/* 86 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var parser = __webpack_require__(86);
-	var Emitter = __webpack_require__(73);
+	var parser = __webpack_require__(87);
+	var Emitter = __webpack_require__(74);
 
 	/**
 	 * Module exports.
@@ -54094,19 +54089,19 @@
 
 
 /***/ },
-/* 86 */
+/* 87 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var keys = __webpack_require__(87);
-	var hasBinary = __webpack_require__(88);
-	var sliceBuffer = __webpack_require__(89);
-	var base64encoder = __webpack_require__(90);
-	var after = __webpack_require__(91);
-	var utf8 = __webpack_require__(92);
+	var keys = __webpack_require__(88);
+	var hasBinary = __webpack_require__(89);
+	var sliceBuffer = __webpack_require__(90);
+	var base64encoder = __webpack_require__(91);
+	var after = __webpack_require__(92);
+	var utf8 = __webpack_require__(93);
 
 	/**
 	 * Check if we are running an android browser. That requires us to use
@@ -54163,7 +54158,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 
-	var Blob = __webpack_require__(93);
+	var Blob = __webpack_require__(94);
 
 	/**
 	 * Encodes a packet.
@@ -54695,7 +54690,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 87 */
+/* 88 */
 /***/ function(module, exports) {
 
 	
@@ -54720,7 +54715,7 @@
 
 
 /***/ },
-/* 88 */
+/* 89 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -54728,7 +54723,7 @@
 	 * Module requirements.
 	 */
 
-	var isArray = __webpack_require__(72);
+	var isArray = __webpack_require__(73);
 
 	/**
 	 * Module exports.
@@ -54785,7 +54780,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 89 */
+/* 90 */
 /***/ function(module, exports) {
 
 	/**
@@ -54820,7 +54815,7 @@
 
 
 /***/ },
-/* 90 */
+/* 91 */
 /***/ function(module, exports) {
 
 	/*
@@ -54885,7 +54880,7 @@
 
 
 /***/ },
-/* 91 */
+/* 92 */
 /***/ function(module, exports) {
 
 	module.exports = after
@@ -54919,7 +54914,7 @@
 
 
 /***/ },
-/* 92 */
+/* 93 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/utf8js v2.0.0 by @mathias */
@@ -55168,7 +55163,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(14)(module), (function() { return this; }())))
 
 /***/ },
-/* 93 */
+/* 94 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -55271,7 +55266,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 94 */
+/* 95 */
 /***/ function(module, exports) {
 
 	/**
@@ -55314,7 +55309,7 @@
 
 
 /***/ },
-/* 95 */
+/* 96 */
 /***/ function(module, exports) {
 
 	
@@ -55326,7 +55321,7 @@
 	};
 
 /***/ },
-/* 96 */
+/* 97 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -55400,7 +55395,7 @@
 
 
 /***/ },
-/* 97 */
+/* 98 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -55408,8 +55403,8 @@
 	 * Module requirements.
 	 */
 
-	var Polling = __webpack_require__(84);
-	var inherit = __webpack_require__(95);
+	var Polling = __webpack_require__(85);
+	var inherit = __webpack_require__(96);
 
 	/**
 	 * Module exports.
@@ -55645,19 +55640,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 98 */
+/* 99 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var Transport = __webpack_require__(85);
-	var parser = __webpack_require__(86);
-	var parseqs = __webpack_require__(94);
-	var inherit = __webpack_require__(95);
-	var yeast = __webpack_require__(96);
-	var debug = __webpack_require__(66)('engine.io-client:websocket');
+	var Transport = __webpack_require__(86);
+	var parser = __webpack_require__(87);
+	var parseqs = __webpack_require__(95);
+	var inherit = __webpack_require__(96);
+	var yeast = __webpack_require__(97);
+	var debug = __webpack_require__(67)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 
 	/**
@@ -55669,7 +55664,7 @@
 	var WebSocket = BrowserWebSocket;
 	if (!WebSocket && typeof window === 'undefined') {
 	  try {
-	    WebSocket = __webpack_require__(99);
+	    WebSocket = __webpack_require__(100);
 	  } catch (e) { }
 	}
 
@@ -55940,13 +55935,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 99 */
+/* 100 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 100 */
+/* 101 */
 /***/ function(module, exports) {
 
 	
@@ -55961,7 +55956,7 @@
 	};
 
 /***/ },
-/* 101 */
+/* 102 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -55999,7 +55994,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 102 */
+/* 103 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -56007,13 +56002,13 @@
 	 * Module dependencies.
 	 */
 
-	var parser = __webpack_require__(69);
-	var Emitter = __webpack_require__(103);
-	var toArray = __webpack_require__(104);
-	var on = __webpack_require__(105);
-	var bind = __webpack_require__(106);
-	var debug = __webpack_require__(66)('socket.io-client:socket');
-	var hasBin = __webpack_require__(107);
+	var parser = __webpack_require__(70);
+	var Emitter = __webpack_require__(104);
+	var toArray = __webpack_require__(105);
+	var on = __webpack_require__(106);
+	var bind = __webpack_require__(107);
+	var debug = __webpack_require__(67)('socket.io-client:socket');
+	var hasBin = __webpack_require__(108);
 
 	/**
 	 * Module exports.
@@ -56417,7 +56412,7 @@
 
 
 /***/ },
-/* 103 */
+/* 104 */
 /***/ function(module, exports) {
 
 	
@@ -56584,7 +56579,7 @@
 
 
 /***/ },
-/* 104 */
+/* 105 */
 /***/ function(module, exports) {
 
 	module.exports = toArray
@@ -56603,7 +56598,7 @@
 
 
 /***/ },
-/* 105 */
+/* 106 */
 /***/ function(module, exports) {
 
 	
@@ -56633,7 +56628,7 @@
 
 
 /***/ },
-/* 106 */
+/* 107 */
 /***/ function(module, exports) {
 
 	/**
@@ -56662,7 +56657,7 @@
 
 
 /***/ },
-/* 107 */
+/* 108 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -56670,7 +56665,7 @@
 	 * Module requirements.
 	 */
 
-	var isArray = __webpack_require__(72);
+	var isArray = __webpack_require__(73);
 
 	/**
 	 * Module exports.
@@ -56728,7 +56723,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 108 */
+/* 109 */
 /***/ function(module, exports) {
 
 	
@@ -56819,7 +56814,7 @@
 
 
 /***/ },
-/* 109 */
+/* 110 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*!
@@ -61432,7 +61427,7 @@
 	;
 
 /***/ },
-/* 110 */
+/* 111 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Handlebars = __webpack_require__(41);
@@ -61441,7 +61436,7 @@
 	},"useData":true});
 
 /***/ },
-/* 111 */
+/* 112 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Handlebars = __webpack_require__(41);
@@ -61450,7 +61445,7 @@
 	},"useData":true});
 
 /***/ },
-/* 112 */
+/* 113 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Handlebars = __webpack_require__(41);

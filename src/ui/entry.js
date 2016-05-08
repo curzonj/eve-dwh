@@ -8,12 +8,12 @@ const app = new Marionette.Application()
 global.App = app
 
 const Views = {
-  rickshaw: require('./rickshaw'),
+  charts: require('./charts'),
 }
 
 const RouterClass = Backbone.Router.extend({
   routes: {
-    stats:    'rickshaw',
+    stats:    'charts',
     orders:   'orders',
     '*path':  'defaultRoute',
   },
@@ -23,8 +23,8 @@ const RouterClass = Backbone.Router.extend({
   },
 
   orders: require('./orders'),
-  rickshaw: function() {
-    app.mainRegion.show(new Views.rickshaw())
+  charts: function() {
+    app.mainRegion.show(new Views.charts())
   },
 })
 

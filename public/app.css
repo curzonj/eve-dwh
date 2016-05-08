@@ -11,10 +11,13 @@ span.loss { color: red }
  *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
 */
 
-.debug_json {
-  margin-top: 15px;
+#historical_charts {
+  margin-top: 40px
 }
-#vol_chart .x_tick .title {
+.debug_json {
+/*  margin-top: 15px;*/
+}
+.hide_time .x_tick .title {
   display: none;
 }
 .chart_container {

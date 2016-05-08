@@ -17,7 +17,10 @@ const ChartData = Backbone.Model.extend({
     this.listenTo(this, 'change', this.requestData);
   },
   requestData: function() {
-    if (_.has(this.changed, 'type_id') || _.has(this.changed, 'station_id')) {
+    if (
+      (_.has(this.changed, 'type_id') || _.has(this.changed, 'station_id')) &&
+      !_.has(this.changed, 'requestState') // Don't trigger ourselves
+    ) {
       const type_id = this.get('type_id')
       const region_id = this.get('region_id')
       const station_id = this.get('station_id')
@@ -48,9 +51,13 @@ const ChartData = Backbone.Model.extend({
             })
           }
 
-          return data
+
+          return {
+            historical: data,
+            recent: _.sortBy(response.data.recent, 'unix_ts'),
+          }
         }),
-      ]).spread((stats, historical) => {
+      ]).spread((stats, timeseries) => {
         function convertSMA(data, name, period) {
           var list = []
 
@@ -65,12 +72,13 @@ const ChartData = Backbone.Model.extend({
           })
         }
 
-        convertSMA(historical, 'region_units', 10)
+        convertSMA(timeseries.historical, 'region_units', 10)
 
         this.set({
           requestState: 'complete',
           stats: stats,
-          historical: historical,
+          historical: timeseries.historical,
+          recent: timeseries.recent,
         })
       })
     }
@@ -172,6 +180,36 @@ const ChartDashboard = Marionette.View.extend({
     })
   },
   onAttach: function() {
+    const recent = this.model.get('recent')
+    this.buildChart(recent,
+      this.$('#day_charts .price.chart_container'),
+      {
+        buy_price_max: {
+          name: 'buy_price_max',
+          color: 'lightblue',
+        },
+        sell_price_min: {
+          name: 'sell_price_min',
+          color: 'steelblue',
+        },
+      })
+    this.buildChart(recent,
+      this.$('#day_charts .volume.chart_container'),
+      {
+        buy_units: {
+          name: 'buy_units',
+          color: 'orange',
+        },
+        sell_units: {
+          name: 'sell_units',
+          color: 'red',
+        },
+        region_units: {
+          name: 'region_units',
+          color: 'lightgreen',
+        },
+      })
+
     const historical = this.model.get('historical')
     this.buildChart(historical,
       this.$('#historical_charts .price.chart_container'),

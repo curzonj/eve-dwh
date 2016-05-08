@@ -95,9 +95,9 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
       //  station_id: req.query.station_id,
     }).leftJoin(sql.raw('(select * from market_daily_stats where type_id = ? and region_id = ? and station_id = ?) m using (type_id, region_id, date_of)', [req.params.type_id, req.query.region_id, req.query.station_id]))
     .whereRaw('date_of >= current_timestamp - cast(? as interval)', ['12 months'])
+    .orderBy('date_of', 'asc')
     .select('date_of', 'quantity AS region_units', 'average AS region_avg', 'day_buy_price_wavg_tx',
     'day_sell_price_wavg_tx', 'day_avg_buy_units', 'day_avg_sell_units')
-    .orderBy('date_of', 'asc')
     .then(data => {
       return _.map(data, row => {
         const data = {
@@ -113,16 +113,21 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
         return data
       })
     }),
-    sql('market_daily_stats').where({
+    sql('market_daily_stats')
+    .leftJoin(sql.raw('(select history_date AS date_of, type_id, region_id, quantity, average from market_history) h using (type_id, region_id, date_of)'))
+    .whereRaw('date_of >= current_timestamp - cast(? as interval)', ['10 days'])
+    .where({
       type_id: req.params.type_id,
       region_id: req.query.region_id,
       station_id: req.query.station_id,
-    }).whereRaw('date_of >= current_timestamp - cast(? as interval)', ['7 days'])
-    .select(columns).select('stats_timestamp')
+    })
+    .orderBy('date_of', 'asc')
+    .select(columns).select('stats_timestamp', 'quantity AS region_units')
     .then(data => {
       return _.flatten(_.map(data, row => {
+        var regional = parseFloat(row.region_units)
         return _.map(row.stats_timestamp, (value, index, col) => {
-          var fake_row = { unix_ts: value }
+          var fake_row = { unix_ts: value, region_units: regional }
           _.forEach(columns, name => {
             fake_row[name] = parseFloat(row[name][index])
           })

@@ -9975,7 +9975,10 @@
 	    this.listenTo(this, 'change', this.requestData);
 	  },
 	  requestData: function() {
-	    if (_.has(this.changed, 'type_id') || _.has(this.changed, 'station_id')) {
+	    if (
+	      (_.has(this.changed, 'type_id') || _.has(this.changed, 'station_id')) &&
+	      !_.has(this.changed, 'requestState') // Don't trigger ourselves
+	    ) {
 	      const type_id = this.get('type_id')
 	      const region_id = this.get('region_id')
 	      const station_id = this.get('station_id')
@@ -10006,9 +10009,13 @@
 	            })
 	          }
 
-	          return data
+
+	          return {
+	            historical: data,
+	            recent: _.sortBy(response.data.recent, 'unix_ts'),
+	          }
 	        }),
-	      ]).spread((stats, historical) => {
+	      ]).spread((stats, timeseries) => {
 	        function convertSMA(data, name, period) {
 	          var list = []
 
@@ -10023,12 +10030,13 @@
 	          })
 	        }
 
-	        convertSMA(historical, 'region_units', 10)
+	        convertSMA(timeseries.historical, 'region_units', 10)
 
 	        this.set({
 	          requestState: 'complete',
 	          stats: stats,
-	          historical: historical,
+	          historical: timeseries.historical,
+	          recent: timeseries.recent,
 	        })
 	      })
 	    }
@@ -10130,6 +10138,36 @@
 	    })
 	  },
 	  onAttach: function() {
+	    const recent = this.model.get('recent')
+	    this.buildChart(recent,
+	      this.$('#day_charts .price.chart_container'),
+	      {
+	        buy_price_max: {
+	          name: 'buy_price_max',
+	          color: 'lightblue',
+	        },
+	        sell_price_min: {
+	          name: 'sell_price_min',
+	          color: 'steelblue',
+	        },
+	      })
+	    this.buildChart(recent,
+	      this.$('#day_charts .volume.chart_container'),
+	      {
+	        buy_units: {
+	          name: 'buy_units',
+	          color: 'orange',
+	        },
+	        sell_units: {
+	          name: 'sell_units',
+	          color: 'red',
+	        },
+	        region_units: {
+	          name: 'region_units',
+	          color: 'lightgreen',
+	        },
+	      })
+
 	    const historical = this.model.get('historical')
 	    this.buildChart(historical,
 	      this.$('#historical_charts .price.chart_container'),
@@ -49087,7 +49125,7 @@
 	module.exports = (Handlebars['default'] || Handlebars).template({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
 	    var helper;
 
-	  return "<div class=\"col-md-6\">\n  <div id=\"day_charts\">\n  </div>\n\n  <div id=\"historical_charts\">\n    <div class=\"price chart_container\">\n      <div class=\"price_chart graph_body\"></div>\n      <div class=\"price_axis chart_axis\"></div>\n    </div>\n    <div class=\"volume chart_container\">\n      <div class=\"vol_chart hide_time graph_body\"></div>\n      <div class=\"vol_axis chart_axis\"></div>\n    </div>\n  </div>\n</div>\n\n<div class=\"col-md-6\">\n  <div id=\"type_stats\">\n    <pre class=\"debug_json\">"
+	  return "<div class=\"col-md-6\">\n  <div id=\"day_charts\">\n    <div class=\"price chart_container\">\n      <div class=\"price_chart graph_body\"></div>\n      <div class=\"price_axis chart_axis\"></div>\n    </div>\n    <div class=\"volume chart_container\">\n      <div class=\"vol_chart hide_time graph_body\"></div>\n      <div class=\"vol_axis chart_axis\"></div>\n    </div>\n  </div>\n\n  <div id=\"historical_charts\">\n    <div class=\"price chart_container\">\n      <div class=\"price_chart graph_body\"></div>\n      <div class=\"price_axis chart_axis\"></div>\n    </div>\n    <div class=\"volume chart_container\">\n      <div class=\"vol_chart hide_time graph_body\"></div>\n      <div class=\"vol_axis chart_axis\"></div>\n    </div>\n  </div>\n</div>\n\n<div class=\"col-md-6\">\n  <div id=\"type_stats\">\n    <pre class=\"debug_json\">"
 	    + container.escapeExpression(((helper = (helper = helpers.stats || (depth0 != null ? depth0.stats : depth0)) != null ? helper : helpers.helperMissing),(typeof helper === "function" ? helper.call(depth0 != null ? depth0 : {},{"name":"stats","hash":{},"data":data}) : helper)))
 	    + "</pre>\n  </div>\n</div>\n";
 	},"useData":true});

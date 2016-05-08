@@ -20,6 +20,12 @@ span.loss { color: red }
 .hide_time .x_tick .title {
   display: none;
 }
+.volume.chart_container {
+  border-top-style: dotted;
+  border-width: 1px;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
 .chart_container {
   position: relative;
   font-family: Arial, Helvetica, sans-serif;

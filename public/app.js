@@ -10187,6 +10187,10 @@
 	          name: 'Sell Price' + (recent.length > 1000 ? ' 20m SMA' : ''),
 	          color: 'steelblue',
 	        },
+	        build_cost: {
+	          name: 'Build Cost',
+	          color: 'pink',
+	        },
 	      })
 	    this.buildChart(recent,
 	      this.$('#day_charts .volume.chart_container'), {
@@ -10214,6 +10218,10 @@
 	        sell_price_wavg: {
 	          name: 'Sell Order Price Wavg',
 	          color: 'steelblue',
+	        },
+	        build_cost: {
+	          name: 'Build Cost',
+	          color: 'pink',
 	        },
 	        region_avg: {
 	          name: 'Region Avg',

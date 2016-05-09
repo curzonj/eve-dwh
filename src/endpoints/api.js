@@ -177,10 +177,14 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
           return
         } else if (type.metaGroupID == 2) {
           category = 't2'
-        } else if (blueprint.invention === undefined) {
-          category = 't1'
+        } else if (type.metaGroupID === null) {
+          if (blueprint.invention === undefined) {
+            category = 't1'
+          } else {
+            category = 't3' // TODO
+          }
         } else {
-          category = 't3' // TODO
+          return
         }
 
         const quantities = {}

@@ -62,6 +62,12 @@ from market_daily_stats where date_of >= (current_timestamp - interval '14 days'
 
 --------------------------------- --------------------------------- ---------------------------------
 --------------------------------- --------------------------------- ---------------------------------
+drop materialized view if exists order_frequencies;
+CREATE MATERIALIZED VIEW order_frequencies AS select type_id, region_id, trunc(trunc(max(history_date) - min(history_date) + 1, 2) / count(*), 4) as ratio, trunc(avg(quantity), 4) as avg_quantity, trunc(avg(orders), 4) as avg_orders from market_history where history_date > current_timestamp - interval '3 months' group by region_id, type_id;
+create index pkey on order_frequencies (region_id, type_id);
+
+--------------------------------- --------------------------------- ---------------------------------
+--------------------------------- --------------------------------- ---------------------------------
 
 drop view if exists agg_market_type_stats;
 create view agg_market_type_stats as

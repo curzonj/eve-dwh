@@ -7,6 +7,7 @@ const sql = require('../sql')
 const errors = require('../errors')
 const _ = require('lodash')
 const bluebird = require('bluebird')
+const logfmt = require('logfmt')
 
 router.post('/sql', function(req, res) {
   var query
@@ -147,9 +148,19 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
         }).then(result => result.rows)
       }
 
+      function priceTimeseries(type_id) {
+        return priceOf(type_id).then(data => {
+          return _.reduce(data, (acc, row) => {
+            const ts = row.date_of.getTime() / 1000
+            acc[ts] = parseFloat(row.price)
+            return acc
+          }, {})
+        })
+      }
+
       return bluebird.all([
         sql('type_metas').where('typeID', type_id).first(),
-        sql('industryActivityProducts').where('productTypeID', type_id).first('typeID')
+        sql('industryActivityProducts').where('productTypeID', type_id).first('typeID', 'quantity')
         .then(blueprint => {
           if (blueprint === undefined)
             return
@@ -159,12 +170,18 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
           .then(results => {
             return {
               typeID: blueprint.typeID,
+              quantity: blueprint.quantity,
               invention: results,
             }
           })
         }),
       ]).spread((type, blueprint) => {
         var category
+        var blueprint_me
+
+        //console.log(type, blueprint)
+        //logfmt.log({ request_id: req.id, at: 'categorize' })
+
         if (type.parent_group_id == 1332) {
           category = 'planetary' // TODO
         } else if (type.parent_group_id == 1034) {
@@ -177,46 +194,98 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
           return
         } else if (type.metaGroupID == 2) {
           category = 't2'
+          // Default results with no decryptor
+          blueprint_me = 0.98
         } else if (type.metaGroupID === null) {
           if (blueprint.invention === undefined) {
             category = 't1'
+            // Assume -10% ME for all blueprints
+            blueprint_me = 0.90
           } else {
             category = 't3' // TODO
+            // Default results with no decryptor
+            blueprint_me = 0.98
+            return
           }
         } else {
           return
         }
 
         const quantities = {}
-        if (blueprint !== undefined) {
-          if (blueprint.invention !== undefined) {
-            return // TODO
-          }
+        var base_cost = 1
 
-          return sql('industryActivityMaterials')
-          .where({
-            activityID: 1,
-            typeID: blueprint.typeID,
-          }).select('materialTypeID', 'quantity')
-          .then(results => {
-            _.forEach(results, row => {
-              quantities[row.materialTypeID] = {
-                quantity: row.quantity,
-              }
+        if (blueprint !== undefined) {
+          return bluebird.try(function() {
+            if (blueprint.invention !== undefined) {
+              // http://wiki.eveuniversity.org/Industry_Overview#System_Cost_Index
+              // Invention: 2% of the estimated value of the input materials required for manufacturing from the BPC(s) you are hoping to get out of the job.
+              base_cost = 1.02
+
+              //logfmt.log({ request_id: req.id, at: 'get invention inputs' })
+              return bluebird.all([
+                sql('industryActivityProbabilities')
+                .where('productTypeID', blueprint.typeID)
+                .orderBy('probability', 'desc').first('probability'),
+                sql('industryActivityMaterials AS iam')
+                .joinRaw('join "industryActivityProducts" AS iap using ("typeID")')
+                .where({
+                  'iap.activityID': 8,
+                  'iam.activityID': 8,
+                  'iap.productTypeID': blueprint.typeID,
+                }).select('materialTypeID', 'iam.quantity'),
+                sql('industryBlueprints')
+                .where('typeID', blueprint.typeID)
+                .first('maxProductionLimit'),
+              ]).spread((probability, inputs, bpc) => {
+                const prob = parseFloat(probability.probability)
+                console.log(probability)
+                // 1.45833 is the bonus from all level 5 skills
+                const multiplier =
+                  (1 / (prob * 1.45833)) *
+                  (1 / bpc.maxProductionLimit)
+
+                _.forEach(inputs, row => {
+                  quantities[row.materialTypeID] = {
+                    base_quantity: row.quantity,
+                    quantity: row.quantity * multiplier,
+                  }
+                })
+              })
+
+              // T3 is the same as T2 but you have to include the price of the relic (use intact)
+            }
+          }).then(function() {
+            //logfmt.log({ request_id: req.id, at: 'get input quantities' })
+
+            return sql('industryActivityMaterials')
+            .where({
+              activityID: 1,
+              typeID: blueprint.typeID,
+            }).select('materialTypeID', 'quantity')
+            .then(results => {
+              _.forEach(results, row => {
+                quantities[row.materialTypeID] = {
+                  base_quantity: row.quantity,
+                  quantity: Math.ceil(row.quantity * blueprint_me) *
+                   (1 + (base_cost * 0.04 * 1.1 * 0.69)),
+                  // Apply this multple to the quantity and it will flow
+                  // through to the cost.
+                  // 4% system cost index + HS NPC taxes. 0.69 is a magic number
+                  // to approximate the actual CCP base_value
+                  // https://forums.eveonline.com/default.aspx?g=posts&t=432695
+                }
+              })
             })
           }).then(() => {
+            //logfmt.log({ request_id: req.id, at: 'multiply quantity' })
+            console.log(quantities)
+
             ////
             /// Quantity -> Price calculation starts here
             ////
             const keys = _.keys(quantities)
             return bluebird.map(keys, type_id => {
-              return priceOf(type_id).then(data => {
-                quantities[type_id].prices = _.reduce(data, (acc, row) => {
-                  const ts = row.date_of.getTime() / 1000
-                  acc[ts] = parseFloat(row.price)
-                  return acc
-                }, {})
-              })
+              return priceTimeseries(type_id).then(data => quantities[type_id].prices = data)
             }).then(() => {
               const dates = _.intersection.apply(_,
                 _.map(keys, type_id => {
@@ -224,34 +293,21 @@ router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
                 })
               )
 
+              //logfmt.log({ request_id: req.id, at: 'build cost timeseries' })
               return _.reduce(dates, (acc, ts) => {
                 acc[ts] = _.reduce(keys, (sum, type_id) => {
                   const obj = quantities[type_id]
-                  return sum + (obj.prices[ts] * Math.ceil(obj.quantity * 0.9))
-                }, 0) * (1 + (0.04 * 1.1 * 0.69))
-                // 4% system cost index + HS NPC taxes. 0.69 is a magic number
-                // to approximate the actual CCP base_value
-                // https://forums.eveonline.com/default.aspx?g=posts&t=432695
+                  return sum + (obj.prices[ts] * obj.quantity)
+                }, 0) / blueprint.quantity
                 return acc
               }, {})
             })
           })
         }
       })
-
-      // T2 Invention materials
-      // select "materialTypeID",iam.quantity from "industryActivityMaterials" iam join "industryActivityProducts" iap on (iap."typeID"=iam."typeID") where iam."activityID"=8 and iap."activityID"=8 and iap."productTypeID"= :blueprint_id
-
-      // T2 Invention probability
-      // select probability from "industryActivityProbabilities" where "productTypeID" = :blueprint_id
-      // zero probabilities == T1, 1 == T2, 2+ == T3
-
-      // T2 Invention Quantity
-      // (100 / (Base_Chance * 1.45833) * quantity
-
-      // T3 is the same as T2 but you have to include the price of the relic (use intact)
     }),
   ]).spread((daily, fine_grained, build_costs) => {
+    //console.log(build_costs)
     if (build_costs) {
       _.forEach(daily, row => {
         if (build_costs[row.unix_ts])

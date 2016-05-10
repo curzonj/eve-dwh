@@ -1,4 +1,5 @@
 drop view if exists agg_market_type_stats;
+drop materialized view if exists order_frequencies;
 drop materialized view if exists observed_history;
 drop materialized view if exists stations_with_stats;
 drop materialized view if exists type_metas;

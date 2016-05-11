@@ -2,6 +2,7 @@
 
 'use strict';
 
+const _ = require('lodash')
 const bluebird = require('bluebird')
 const http = require('http')
 const express = require('express')

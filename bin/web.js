@@ -100,7 +100,7 @@ passport.use(new EveOnlineStrategy({
   function(characterInformation, done) {
     debug('eve:auth', characterInformation)
 
-    if (characterInformation.CharacterID === 92453716) {
+    if (_.includes([92453716, 628592330], characterInformation.CharacterID)) {
       done(null, {
         CharacterID: characterInformation.CharacterID,
       })

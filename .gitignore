@@ -5,3 +5,6 @@ node_modules
 /my.db
 /dump.rdb
 /dumps
+pgbouncer.ini
+Procfile.pgbouncer
+stunnel.conf

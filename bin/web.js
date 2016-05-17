@@ -101,25 +101,35 @@ passport.use(new EveOnlineStrategy({
   function(characterInformation, done) {
     debug('eve:auth', characterInformation)
 
-    if (_.includes([92453716, 628592330], characterInformation.CharacterID)) {
-      done(null, {
-        CharacterID: characterInformation.CharacterID,
-      })
-    } else {
+    sql('eve_sso')
+    .where('character_id', characterInformation.CharacterID)
+    .first('user_account_id').then(user => {
+      if (user.user_account_id === null) {
+        done(null, false, {
+          message: 'Restricted Area',
+        })
+      } else {
+        // Return a value that matches passport.deserializeUser
+        done(null, {
+          account_id: user.user_account_id,
+        })
+      }
+    }).catch(e => {
+      console.log(e)
       done(null, false, {
-        message: 'Restricted Area',
+        message: 'internal error',
       })
-    }
+    })
   }
 ))
 
 passport.serializeUser(function(user, done) {
-  done(null, user.CharacterID)
+  done(null, user.account_id)
 });
 
 passport.deserializeUser(function(id, done) {
   done(null, {
-    CharacterID: id,
+    account_id: id,
   })
 })
 

@@ -10,9 +10,16 @@ const queries = require('./queries')
 
 module.exports = function(io) {
   io.on('connection', errors.fn.catch(function(socket) {
+    if (socket.request.user.logged_in !== true) {
+      socket.close()
+      return
+    }
+
+    const account_id = socket.request.user.account_id;
+
     debug('http', {
       at: 'socket.io#connection',
-      user: JSON.stringify(socket.request.user),
+      account_id: account_id,
     })
 
     socket.on('chat message', function(msg) {
@@ -25,11 +32,10 @@ module.exports = function(io) {
 
     pubsub.usingSocket(socket, 'my_order_polling', function(msg) {
       bluebird.all([
-        queries.character_order_details('market').where({
+        queries.character_order_details(account_id).where({
           'c.type_id': msg.type_id,
           'c.region_id': msg.region_id,
         }).tap(sql.utils.parseNumbers),
-        //character_order_details('historical').where({ 'c.type_id': msg.type_id, 'c.region_id': msg.region_id })
       ]).spread((orders, old_orders) => {
         debug('test', {
           orders: JSON.stringify(orders),
@@ -39,8 +45,10 @@ module.exports = function(io) {
       })
     })
 
-    queries.character_order_details('market').tap(sql.utils.parseNumbers).then(function(orders) {
-      socket.emit('order_announcement', orders)
-    })
+    queries
+      .character_order_details(account_id)
+      .tap(sql.utils.parseNumbers).then(function(orders) {
+        socket.emit('order_announcement', orders)
+      })
   }))
 }

@@ -102,4 +102,5 @@ p3_prices AS (
 
 select "typeName", "AlsoBuildThisP2", net_input_costs, (gross_revenue - raw_cost) raw_profit, (gross_revenue - net_input_costs) best_profit, round(net_input_costs / quantity, 2) AS cost_per_unit from p3_prices
 order by (raw_cost < gross_revenue) desc, best_profit desc
+--select * from input_prices where "marketGroupID" = 1335 order by profit desc
 ;

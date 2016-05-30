@@ -81,6 +81,92 @@ function eachApiKeyTarget(name, fn) {
   })
 }
 
+function importIndustryJobs(data) {
+  return bluebird.map(_.values(data.jobs),
+    function(t) {
+      lib.debug('import', {
+        at: 'industry_jobs',
+        data: JSON.stringify(t),
+      })
+
+      const job_id = parseInt(t.jobID)
+      const completed_date = t.completedDate === '0001-01-01 00:00:00' ? null : new Date(t.completedDate)
+      const start_date = new Date(t.startDate)
+
+      if (isNaN(start_date.getTime())) {
+        logfmt.namespace({
+          fn: 'importIndustryJobs',
+          at: 'date_error',
+          job_id: job_id,
+          start_date: t.startDate,
+        })
+        return
+      }
+
+      return sql('industry_jobs').insert({
+        job_id: job_id,
+        installer_id: parseInt(t.installerID),
+        activity_id: parseInt(t.activityID),
+        blueprint_type_id: parseInt(t.blueprintTypeID),
+        start_date: new Date(t.startDate),
+        completed_date: completed_date,
+        job_data: t,
+      }).catch(e => {
+        if (e.message.indexOf('duplicate key value') > 0) {
+          sql('industry_jobs').where({ job_id: job_id }).update({
+            completed_date: completed_date,
+            job_data: t,
+          })
+        } else {
+          logfmt.namespace({
+            fn: 'importIndustryJobs',
+            at: 'insert_errror',
+            job_id: job_id,
+          }).error(e)
+        }
+      })
+    }, {
+      concurrency: 10,
+    })
+}
+
+
+// 15min timer, IndustryJobs
+lib.cronTask(900, function() {
+  return bluebird.try(function() {
+    return eachApiKeyTarget('IndustryJobs', function(client, char_id, corp_id) {
+      return bluebird.try(function() {
+        if (char_id === null) {
+          return limitClient(client, 'corp:IndustryJobs', { })
+        } else {
+          return limitClient(client, 'char:IndustryJobs', {
+            characterID: char_id,
+          })
+        }
+      }).then(importIndustryJobs)
+    })
+  })
+})
+
+// 6hr timer, IndustryJobHistory
+lib.cronTask(21600, function() {
+  return bluebird.try(function() {
+    return eachApiKeyTarget('IndustryJobsHistory', function(client, char_id, corp_id) {
+      return bluebird.try(function() {
+        if (char_id === null) {
+          return limitClient(client, 'corp:IndustryJobsHistory', { })
+        } else {
+          return limitClient(client, 'char:IndustryJobsHistory', {
+            characterID: char_id,
+          })
+        }
+      }).then(importIndustryJobs)
+    })
+  })
+})
+
+/*
+
 // 30min timer, wallet journal + transactions
 lib.cronTask(1800, function() {
   return bluebird.try(function() {
@@ -315,3 +401,4 @@ lib.cronTask(7200, function() {
     })
   })
 })
+*/

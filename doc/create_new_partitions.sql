@@ -1,11 +1,11 @@
-CREATE TABLE IF NOT EXISTS zkillboard_data_y2016m05  (
-    CHECK ( kill_time >= DATE '2016-05-01' AND kill_time < DATE '2016-06-01' )
+CREATE TABLE IF NOT EXISTS zkillboard_data_y2016m06  (
+    CHECK ( kill_time >= DATE '2016-06-01' AND kill_time < DATE '2016-07-01' )
 ) INHERITS (zkillboard_data);
 
-alter table zkillboard_data_y2016m05 add primary key (kill_id);
+alter table zkillboard_data_y2016m06 add primary key (kill_id);
 
-CREATE TABLE IF NOT EXISTS market_daily_stats_y2016m05  (
-    CHECK ( date_of >= DATE '2016-05-01' AND date_of < DATE '2016-06-01' )
+CREATE TABLE IF NOT EXISTS market_daily_stats_y2016m06  (
+    CHECK ( date_of >= DATE '2016-06-01' AND date_of < DATE '2016-07-01' )
 ) INHERITS (market_daily_stats);
 
-alter table market_daily_stats_y2016m05 add primary key (type_id, region_id, station_id, date_of);
+alter table market_daily_stats_y2016m06 add primary key (type_id, region_id, station_id, date_of);

@@ -9,77 +9,9 @@ const _ = require('lodash')
 const lib = require('../src/library')
 const sql = require('../src/sql')
 const debug = require('../src/debug')
-const neow = require('neow')
+const xml_api = require('../src/eve_xml_api')
 
 lib.setupSignalHandlers()
-
-const throttle = new bluebirdThrottle({
-  requestsPerSecond: 30,
-  promiseImplementation: bluebird,
-})
-
-function limitClient(client, endpoint, data) {
-  return throttle.add(function() {
-    debug('eve:xml', _.assign({
-      endpoint: endpoint,
-    }, data))
-    return client.fetch(endpoint, data)
-  })
-}
-
-function eachApiKeyTarget(name, fn) {
-  return sql('eve_api_keys').then(function(rows) {
-    return bluebird.each(rows, function(key_row) {
-      var client = lib.buildEveClient(key_row.key_id, key_row.vcode)
-      if (key_row.is_corporate) {
-        return bluebird.each(sql('managed_corps').where({
-            key_id: key_row.key_id,
-          }).pluck('corporation_id'),
-          function(corp_id) {
-            return bluebird.resolve(fn(client, null, corp_id)).then(function() {
-              logfmt.log({
-                import: name,
-                key_id: key_row.key_id,
-                corporation_id: corp_id,
-                at: 'finished',
-                fn: 'eachApiKeyTarget',
-              })
-            })
-          }).then(function() {
-          logfmt.log({
-            import: name,
-            key_id: key_row.key_id,
-            at: 'finished',
-            fn: 'eachApiKeyTarget',
-          })
-        })
-
-      } else {
-        return bluebird.each(sql('managed_characters').where({
-            key_id: key_row.key_id,
-          }).pluck('character_id'),
-          function(char_id) {
-            return bluebird.resolve(fn(client, char_id)).then(function() {
-              logfmt.log({
-                import: name,
-                key_id: key_row.key_id,
-                character_id: char_id,
-                at: 'finished',
-                fn: 'eachApiKeyTarget',
-              })
-            })
-          }).then(function() {
-          logfmt.log({
-            import: name,
-            key_id: key_row.key_id,
-            at: 'finished',
-            fn: 'eachApiKeyTarget',
-          })
-        })
-      }
-    })
-  })
-}
 
 function importIndustryJobs(data) {
   return bluebird.map(_.values(data.jobs),
@@ -134,12 +66,12 @@ function importIndustryJobs(data) {
 // 15min timer, IndustryJobs
 lib.cronTask(900, function() {
   return bluebird.try(function() {
-    return eachApiKeyTarget('IndustryJobs', function(client, char_id, corp_id) {
+    return xml_api.eachApiKeyTarget('IndustryJobs', function(client, char_id, corp_id) {
       return bluebird.try(function() {
         if (char_id === null) {
-          return limitClient(client, 'corp:IndustryJobs', { })
+          return xml_api.limitClient(client, 'corp:IndustryJobs', { })
         } else {
-          return limitClient(client, 'char:IndustryJobs', {
+          return xml_api.limitClient(client, 'char:IndustryJobs', {
             characterID: char_id,
           })
         }
@@ -151,12 +83,12 @@ lib.cronTask(900, function() {
 // 6hr timer, IndustryJobHistory
 lib.cronTask(21600, function() {
   return bluebird.try(function() {
-    return eachApiKeyTarget('IndustryJobsHistory', function(client, char_id, corp_id) {
+    return xml_api.eachApiKeyTarget('IndustryJobsHistory', function(client, char_id, corp_id) {
       return bluebird.try(function() {
         if (char_id === null) {
-          return limitClient(client, 'corp:IndustryJobsHistory', { })
+          return xml_api.limitClient(client, 'corp:IndustryJobsHistory', { })
         } else {
-          return limitClient(client, 'char:IndustryJobsHistory', {
+          return xml_api.limitClient(client, 'char:IndustryJobsHistory', {
             characterID: char_id,
           })
         }
@@ -165,19 +97,17 @@ lib.cronTask(21600, function() {
   })
 })
 
-/*
-
 // 30min timer, wallet journal + transactions
 lib.cronTask(1800, function() {
   return bluebird.try(function() {
-    return eachApiKeyTarget('WalletTransactions', function(client, char_id, corp_id) {
+    return xml_api.eachApiKeyTarget('WalletTransactions', function(client, char_id, corp_id) {
       return bluebird.try(function() {
         if (char_id === null) {
-          return limitClient(client, 'corp:WalletTransactions', {
+          return xml_api.limitClient(client, 'corp:WalletTransactions', {
             accountKey: 1000,
           })
         } else {
-          return limitClient(client, 'char:WalletTransactions', {
+          return xml_api.limitClient(client, 'char:WalletTransactions', {
             characterID: char_id,
           })
         }
@@ -217,11 +147,11 @@ lib.cronTask(1800, function() {
           })
       }).then(function() {
         if (char_id === null) {
-          return limitClient(client, 'corp:WalletJournal', {
+          return xml_api.limitClient(client, 'corp:WalletJournal', {
             accountKey: 1000,
           })
         } else {
-          return limitClient(client, 'char:WalletJournal', {
+          return xml_api.limitClient(client, 'char:WalletJournal', {
             characterID: char_id,
           })
         }
@@ -261,14 +191,14 @@ lib.cronTask(3600, function() {
   return bluebird.try(function() {
     // market orders
     const orders_by_char = {}
-    return eachApiKeyTarget('MarketOrders', function(client, char_id, corp_id) {
+    return xml_api.eachApiKeyTarget('MarketOrders', function(client, char_id, corp_id) {
       return bluebird.try(function() {
         if (char_id === null) {
-          return limitClient(client, 'corp:MarketOrders', {
+          return xml_api.limitClient(client, 'corp:MarketOrders', {
             corporationID: corp_id,
           })
         } else {
-          return limitClient(client, 'char:MarketOrders', {
+          return xml_api.limitClient(client, 'char:MarketOrders', {
             characterID: char_id,
           })
         }
@@ -321,12 +251,169 @@ lib.cronTask(3600, function() {
   })
 })
 
+// 1hr timer, market orders, planetary interaction
+lib.cronTask(3600, function() {
+  const AIFs = [2470, 2472, 2474, 2480, 2484, 2485, 2491, 2494]
+  const launchPads = [2256, 2542, 2543, 2544, 2552, 2555, 2556, 2557]
+  const storages = launchPads + [2257, 2535, 2536, 2541, 2558, 2560, 2561, 2562]
+
+  return bluebird.try(function() {
+    return xml_api.eachApiKeyTarget('PlanetaryInteraction', function(client, char_id, corp_id) {
+      if (char_id === null)
+        return
+
+      return xml_api.limitClient(client, 'char:PlanetaryColonies', {
+        characterID: char_id,
+      }).then(colonies => {
+        return bluebird.each(_.values(colonies.colonies), planet => {
+          return bluebird.try(function() {
+            return xml_api.rawEveResponse(client, function() {
+              return client.fetch('char:PlanetaryPins', {
+                characterID: planet.ownerID,
+                planetID: planet.planetID,
+              })
+            }).then(function(pins) {
+              return xml_api.limitClient(client, 'char:PlanetaryRoutes', {
+                characterID: planet.ownerID,
+                planetID: planet.planetID,
+              }).then(function(routes) {
+                return [pins, routes]
+              })
+            })
+          }).spread(function(pins, routes) {
+            // map to pin ids
+            // fetch the routes
+            // group AIFs by source
+            var rebuilt = _.reduce(pins.pins, function(hash, pin) {
+              var pinData
+
+              if (!_.has(hash, pin.pinID)) {
+                pinData = hash[pin.pinID] = {
+                  pinID: parseInt(pin.pinID),
+                  typeID: parseInt(pin.typeID),
+                  schematicID: parseInt(pin.schematicID),
+                  lastLaunchTime: new Date(pin.lastLaunchTime),
+                  contents: {},
+                  sources: {},
+                  sinks: {},
+                }
+              } else {
+                pinData = hash[pin.pinID]
+              }
+
+              pinData.contents[pin.contentTypeID] = parseInt(pin.contentQuantity)
+
+              return hash
+            })
+
+            _.forEach(routes.routes, function(v) {
+              var type_id = parseInt(v.contentTypeID);
+              (rebuilt[v.sourcePinID].sinks[type_id] = rebuilt[v.sourcePinID].sinks[type_id] || []).push(v.destinationPinID);
+              (rebuilt[v.destinationPinID].sources[type_id] = rebuilt[v.destinationPinID].sources[type_id] || []).push(v.sourcePinID);
+            })
+
+            return rebuilt
+          }).tap(function(result) {
+            return bluebird.each(_.values(result), function(value) {
+              if (value.schematicID > 0)
+                return sql('planetSchematicsTypeMap').where({
+                  schematicID: value.schematicID,
+                }).then(function(rows) {
+                  value.schematics = rows
+                })
+            })
+          }).then(function(result) {
+            var storagePins = _.filter(_.values(result), function(o, i) {
+              return _.includes(storages, o.typeID)
+            })
+
+            _.each(storagePins, function(pin) {
+              pin.ttls = {}
+              _.each(pin.sinks, function(other_id_list, type_id) {
+                //console.log(pin.sinks)
+                var rate_p_hour = 0
+                var contents = pin.contents[type_id] || 0
+                var earliest = new Date()
+
+                _.each(other_id_list, function(other_pin_id) {
+                  //console.log(other_id_list, other_pin_id)
+                  var other_pin = result[other_pin_id]
+                  var schem = _.find(other_pin.schematics, function(o) {
+                    return o.isInput && o.typeID == type_id
+                  })
+
+                  rate_p_hour = rate_p_hour + schem.quantity
+                  earliest = Math.min(other_pin.lastLaunchTime, earliest)
+                })
+
+                var done_at = new Date(earliest + ((contents / rate_p_hour) * 3600 * 1000))
+                pin.ttls[type_id] = {
+                  rate_p_hour: rate_p_hour,
+                  earliest: new Date(earliest),
+                  done_at: done_at,
+                  ttl_hrs: (done_at - new Date()) / (3600 * 1000),
+                }
+              })
+            })
+
+            return storagePins
+          }).then(function(result) {
+            return sql('planetary_observations').insert({
+              planet_id: parseInt(planet.planetID),
+              character_id: parseInt(planet.ownerID),
+              observed_at: new Date(),
+              last_updated_at: new Date(planet.lastUpdate),
+              observation_data: {
+                number_of_pins: parseInt(planet.numberOfPins),
+                storage_contents: _.reduce(result, (acc, item) => {
+                  if (!_.isEmpty(item.contents)) {
+                    _.forEach(item.contents, (value, key) => {
+                      acc[key] = value + (acc[key] || 0)
+                    })
+                  }
+                  return acc
+                }, {}),
+                products: _.reduce(result, (acc, item) => {
+                  if (!_.isEmpty(item.sources)) {
+                    _.forEach(item.sources, (value, key) => {
+                      acc[key] = _.size(value) + (acc[key] || 0)
+                    })
+                  }
+                  return acc
+                }, {}),
+                inputs: _.reduce(result, (acc, item) => {
+                  _.forEach(item.ttls, (value, key) => {
+                    if (_.isUndefined(acc[key])) {
+                      acc[key] = value
+                    }
+                  })
+                  return acc
+                }, {}),
+              },
+            }).catch(e => {
+              if (e.message.indexOf('duplicate key value') === -1) {
+                logfmt.namespace({
+                  fn: 'importPlanetaryInteraction',
+                  at: 'insert_errror',
+                  planet_id: parseInt(planet.planetID),
+                  character_id: parseInt(planet.ownerID),
+                  updated_at: new Date(planet.lastUpdate),
+                }).error(e)
+              }
+            })
+          })
+        })
+      })
+    })
+  })
+})
+
 // 1hr timer, map statistics
 lib.cronTask(3600, function() {
-  const client = new neow.EveClient({}, null, lib.neowCache)
+  const client = xml_api.buildEveClient()
   return bluebird.all([
-    limitClient(client, 'map:kills', {}).then(data => { return data.solarSystems }),
-    limitClient(client, 'map:Jumps', {}).then(data => { return data.solarSystems }),
+    xml_api.limitClient(client, 'map:kills', {}).then(data => { return data.solarSystems }),
+    xml_api.limitClient(client, 'map:Jumps', {}).then(data => { return data.solarSystems }),
   ]).spread((kills, jumps) => {
     const system_ids = _.union(_.keys(kills), _.keys(jumps))
     const now = new Date()
@@ -374,14 +461,14 @@ lib.cronTask(7200, function() {
 
     var now = new Date()
 
-    return eachApiKeyTarget('AssetList', function(client, char_id, corp_id) {
+    return xml_api.eachApiKeyTarget('AssetList', function(client, char_id, corp_id) {
       return bluebird.try(function() {
         if (char_id === null) {
-          return limitClient(client, 'corp:AssetList', {
+          return xml_api.limitClient(client, 'corp:AssetList', {
             corporationID: corp_id,
           })
         } else {
-          return limitClient(client, 'char:AssetList', {
+          return xml_api.limitClient(client, 'char:AssetList', {
             characterID: char_id,
           })
         }
@@ -401,4 +488,3 @@ lib.cronTask(7200, function() {
     })
   })
 })
-*/

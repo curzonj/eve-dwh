@@ -82,8 +82,10 @@ router.get('/v1/types/:type_id/market/stats', (req, res, next) => {
 
 router.get('/v1/types/:type_id/market/buy_sell_series', (req, res, next) => {
   const columns = [
+    'buy_price_median',
     'buy_price_max',
     'buy_units',
+    'sell_price_median',
     'sell_price_min',
     'sell_units',
   ]

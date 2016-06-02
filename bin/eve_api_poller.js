@@ -351,7 +351,6 @@ lib.cronTask(3600, function() {
                   rate_p_hour: rate_p_hour,
                   earliest: new Date(earliest),
                   done_at: done_at,
-                  ttl_hrs: (done_at - new Date()) / (3600 * 1000),
                 }
               })
             })

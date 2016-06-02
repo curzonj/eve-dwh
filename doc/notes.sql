@@ -1,3 +1,7 @@
+-- Query to find the latest planetary observations
+
+select * from planetary_observations a join (select planet_id, character_id, max(last_updated_at) last_updated_at from planetary_observations group by planet_id, character_id) b using (planet_id, character_id, last_updated_at);
+
 
 -- The query used to find all of a customer's orders
 select

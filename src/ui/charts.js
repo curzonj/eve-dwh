@@ -221,12 +221,20 @@ const ChartDashboard = Marionette.View.extend({
     const recent = this.model.get('recent')
     this.buildChart(recent,
       this.$('#day_charts .price.chart_container'), {
+        buy_price_median: {
+          name: 'Buy Price Median',
+          color: 'lightblue',
+        },
         buy_price_max: {
           name: 'Buy Price' + (recent.length > 1000 ? ' 20m SMA' : ''),
           color: 'lightblue',
         },
         sell_price_min: {
           name: 'Sell Price' + (recent.length > 1000 ? ' 20m SMA' : ''),
+          color: 'steelblue',
+        },
+        sell_price_median: {
+          name: 'Sell Price Median',
           color: 'steelblue',
         },
         build_cost: {

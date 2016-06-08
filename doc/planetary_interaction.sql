@@ -69,12 +69,14 @@ profits AS (
 )
 
 select
+input_count AS inputs,
+"Type",
 "typeName",
 round(cost / quantity, 2) AS cost_per_unit,
 round(buy_order_revenue - cost, 2) buy_order_profit,
+round(buy_order_revenue / quantity, 2) buy_price,
 round(sell_order_revenue - cost, 2) sell_order_profit,
-round((sell_order_revenue - cost)*18*24, 2) daily_sell_profits,
-"Type",
-input_count AS inputs
+round(sell_order_revenue / quantity, 2) sell_price,
+round((buy_order_revenue - cost)*18*24, 2) daily_planet_profits
 from profits
-order by sell_order_profit desc;
+order by buy_order_profit desc;

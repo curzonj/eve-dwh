@@ -1,6 +1,9 @@
 -- Query to find the latest planetary observations
 
-select * from planetary_observations a join (select planet_id, character_id, max(last_updated_at) last_updated_at from planetary_observations group by planet_id, character_id) b using (planet_id, character_id, last_updated_at);
+select characters.name, "itemName", a.* from planetary_observations a join (select planet_id, character_id, max(last_updated_at) last_updated_at from planetary_observations group by planet_id, character_id) b using (planet_id, character_id, last_updated_at) join characters using(character_id) join "mapDenormalize" on ("itemID" = planet_id);
+
+set timezone to -7;
+select character_id, name, to_char(done_at+interval '2 hours', 'FMDay, HH:MI AM') from (select character_id, name, max((select max((value->>'done_at')::timestamptz) from jsonb_each(observation_data->'inputs'))) AS done_at from planetary_observations a join (select planet_id, character_id, max(last_updated_at) last_updated_at from planetary_observations group by planet_id, character_id) b using (planet_id, character_id, last_updated_at) join characters using (character_id) group by character_id, name) a order by done_at asc;
 
 
 -- The query used to find all of a customer's orders

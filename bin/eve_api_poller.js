@@ -301,7 +301,12 @@ lib.cronTask(3600, function() {
                 pinData = hash[pin.pinID]
               }
 
-              pinData.contents[pin.contentTypeID] = parseInt(pin.contentQuantity)
+              const contentQuantity = parseInt(pin.contentQuantity)
+              const contentTypeID = parseInt(pin.contentTypeID)
+
+              if (contentTypeID > 0 && contentQuantity > 0) {
+                pinData.contents[pin.contentTypeID] = contentQuantity
+              }
 
               return hash
             })
@@ -357,7 +362,7 @@ lib.cronTask(3600, function() {
 
             return storagePins
           }).then(function(result) {
-            return sql('planetary_observations').insert({
+            const sqlData = {
               planet_id: parseInt(planet.planetID),
               character_id: parseInt(planet.ownerID),
               observed_at: new Date(),
@@ -389,7 +394,9 @@ lib.cronTask(3600, function() {
                   return acc
                 }, {}),
               },
-            }).catch(e => {
+            }
+
+            return sql('planetary_observations').insert(sqlData).catch(e => {
               if (e.message.indexOf('duplicate key value') === -1) {
                 logfmt.namespace({
                   fn: 'importPlanetaryInteraction',

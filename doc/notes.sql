@@ -1,5 +1,7 @@
 -- Query to find the latest planetary observations
 
+select characters.name, "itemName", to_char(a.last_updated_at, 'FMDay, HH:MI AM'), a.observation_data->'storage_contents' from planetary_observations a join (select planet_id, character_id, max(last_updated_at) last_updated_at from planetary_observations group by planet_id, character_id) b using (planet_id, character_id, last_updated_at) join characters using(character_id) join "mapDenormalize" on ("itemID" = planet_id);
+
 select characters.name, "itemName", a.* from planetary_observations a join (select planet_id, character_id, max(last_updated_at) last_updated_at from planetary_observations group by planet_id, character_id) b using (planet_id, character_id, last_updated_at) join characters using(character_id) join "mapDenormalize" on ("itemID" = planet_id);
 
 set timezone to -7;
